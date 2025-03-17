@@ -1,11 +1,14 @@
 import json
 from pathlib import Path
 
+from zhenxun.configs.path_config import DATA_PATH
 from zhenxun.services.log import logger
-from zhenxun.configs.path_config import DATA_PATH, IMAGE_PATH, TEMPLATE_PATH
 
 g_sDBPath = DATA_PATH / "farm_db"
 g_sDBFilePath = DATA_PATH / "farm_db/farm.db"
+
+g_sResourcePath = Path(__file__).resolve().parent / "resource"
+
 
 class CJsonManager:
     def __init__(self):
@@ -27,12 +30,15 @@ class CJsonManager:
         current_file_path = Path(__file__)
 
         try:
-            with open(current_file_path.resolve().parent / "config/item.json", 'r', encoding='utf-8') as file:
+            with open(
+                current_file_path.resolve().parent / "config/item.json",
+                encoding="utf-8",
+            ) as file:
                 cls.m_pItem = json.load(file)
 
                 return True
         except FileNotFoundError:
-            logger.warning(f"item.json 打开失败: {e}")
+            logger.warning("item.json 打开失败")
             return False
         except json.JSONDecodeError as e:
             logger.warning(f"item.json JSON格式错误: {e}")
@@ -43,12 +49,15 @@ class CJsonManager:
         current_file_path = Path(__file__)
 
         try:
-            with open(current_file_path.resolve().parent / "config/plant.json", 'r', encoding='utf-8') as file:
+            with open(
+                current_file_path.resolve().parent / "config/plant.json",
+                encoding="utf-8",
+            ) as file:
                 cls.m_pPlant = json.load(file)
 
                 return True
         except FileNotFoundError:
-            logger.warning(f"plant.json 打开失败: {e}")
+            logger.warning("plant.json 打开失败")
             return False
         except json.JSONDecodeError as e:
             logger.warning(f"plant.json JSON格式错误: {e}")

@@ -1,23 +1,21 @@
 import os
+
 import aiosqlite
-import asyncio
 
 from zhenxun.services.log import logger
-from zhenxun.configs.path_config import DATA_PATH, IMAGE_PATH, TEMPLATE_PATH
 
-from .config import (
-    g_sDBPath,
-    g_sDBFilePath
-)
+from .config import g_sDBFilePath, g_sDBPath
+
 
 class CSqlManager:
     def __init__(self):
         g_sDBPath.mkdir(parents=True, exist_ok=True)
 
-    def __del__(self):
-        if self.m_pDB:
-            self.m_pDB.close()
-            self.m_pDB = None
+    @classmethod
+    async def cleanup(cls):
+        if cls.m_pDB:
+            await cls.m_pDB.close()
+            cls.m_pDB = None
 
     @classmethod
     async def init(cls) -> bool:
@@ -26,7 +24,7 @@ class CSqlManager:
         cls.m_pDB = await aiosqlite.connect(g_sDBFilePath)
 
         if bIsExist == False:
-            #TODO 缺少判断创建失败事件
+            # TODO 缺少判断创建失败事件
             await cls.createDB()
 
         return True
@@ -40,14 +38,14 @@ class CSqlManager:
         """
 
         try:
-            await cls.m_pDB.execute('''
+            await cls.m_pDB.execute("""
                 CREATE TABLE user (
                     uid INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL,
                     level INTEGER DEFAULT 1,
                     point INTEGER DEFAULT 0
                 );
-            ''')
+            """)
             await cls.m_pDB.commit()
             return True
         except Exception as e:
@@ -55,7 +53,7 @@ class CSqlManager:
             return False
 
     @classmethod
-    async def getUserByUid(cls, uid : str) -> list[dict]:
+    async def getUserInfoByUid(cls, uid: str) -> list[dict]:
         """根据用户Uid获取用户信息
 
         Args:
@@ -68,15 +66,17 @@ class CSqlManager:
             return []
 
         try:
-            async with cls.m_pDB.execute("SELECT * FROM user WHERE uid = ?", (uid,)) as cursor:
+            async with cls.m_pDB.execute(
+                "SELECT * FROM user WHERE uid = ?", (uid,)
+            ) as cursor:
                 results = []
 
                 async for row in cursor:
                     user_dict = {
-                        'uid': row[0],
-                        'name': row[1],
-                        'level': row[2],
-                        'point': row[3]
+                        "uid": row[0],
+                        "name": row[1],
+                        "level": row[2],
+                        "point": row[3],
                     }
                     results.append(user_dict)
 
@@ -86,7 +86,22 @@ class CSqlManager:
             return []
 
     @classmethod
-    async def appendUserByUserInfo(cls, info : list[dict]) -> bool:
+    async def getUserPointByUid(cls, uid: str) -> int:
+        if len(uid) <= 0:
+            return -1
+
+        try:
+            async with cls.m_pDB.execute(
+                "SELECT point FROM user WHERE uid = ?", (uid,)
+            ) as cursor:
+                async for row in cursor:
+                    return int(row[0])
+        except Exception as e:
+            logger.warning(f"查询失败: {e}")
+            return -1
+
+    @classmethod
+    async def appendUserByUserInfo(cls, info: list[dict]) -> bool:
         """添加用户信息
 
         Args:
@@ -97,9 +112,12 @@ class CSqlManager:
         """
 
         try:
-            await cls.m_pDB.execute('''
+            await cls.m_pDB.execute(
+                """
                 INSERT INTO user (uid, name, level, point) VALUES (?, ?, ?, ?)
-            ''', (info['uid'], info['name'], info['level'], info['point']))
+            """,
+                (info["uid"], info["name"], info["level"], info["point"]),
+            )
             await cls.m_pDB.commit()
 
             return True

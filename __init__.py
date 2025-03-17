@@ -1,36 +1,38 @@
-from nonebot.plugin import PluginMetadata
 from nonebot import get_driver
+from nonebot.plugin import PluginMetadata
 
 from zhenxun.configs.utils import PluginExtraData
-from zhenxun.services.plugin_init import PluginInit
 
-from .gClass import(
-    g_pSqlManager,
-    g_pJsonManager
-)
-from .command import (
-    diuse_register
-)
+from .command import diuse_farm, diuse_register
+from .globalClass import g_pJsonManager, g_pSqlManager
 
 __plugin_meta = PluginMetadata(
-    name = "真寻的农场",
-    description = "快乐的农场时光",
-    usage = """
+    name="真寻的农场",
+    description="快乐的农场时光",
+    usage="""
         农场快乐时光
     """.strip(),
-    extra = PluginExtraData(
+    extra=PluginExtraData(
         author="molanp",
         version="1.0",
         menu_type="群内小游戏",
     ).dict(),
 )
 
-#注册启动函数
 driver = get_driver()
 
+
+# 构造函数
 @driver.on_startup
 async def start():
-    #初始化数据库
+    # 初始化数据库
     await g_pSqlManager.init()
 
+    # 初始化读取Json
     await g_pJsonManager.init()
+
+
+# 析构函数
+@driver.on_shutdown
+async def shutdown():
+    await g_pSqlManager.cleanup()
