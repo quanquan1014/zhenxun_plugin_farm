@@ -2,9 +2,14 @@ from nonebot import get_driver
 from nonebot.plugin import PluginMetadata
 
 from zhenxun.configs.utils import PluginExtraData
+from zhenxun.utils.message import MessageUtils
 
 from .command import diuse_farm, diuse_register
-from .globalClass import g_pJsonManager, g_pSqlManager
+from .config import g_pJsonManager
+from .database import g_pSqlManager
+from .drawImage import g_pDrawImage
+
+# from .globalClass import g_pDrawImage, g_pJsonManager, g_pSqlManager
 
 __plugin_meta = PluginMetadata(
     name="真寻的农场",
@@ -26,11 +31,16 @@ driver = get_driver()
 @driver.on_startup
 async def start():
     # 初始化数据库
+    # await g_pSqlManager.init()
+
     await g_pSqlManager.init()
 
     # 初始化读取Json
+    # await g_pJsonManager.init()
     await g_pJsonManager.init()
 
+    # await g_pDrawImage.drawMyFarm("11223")
+    await g_pDrawImage.drawMyFarm("22")
 
 # 析构函数
 @driver.on_shutdown

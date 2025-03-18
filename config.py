@@ -9,24 +9,29 @@ g_sDBFilePath = DATA_PATH / "farm_db/farm.db"
 
 g_sResourcePath = Path(__file__).resolve().parent / "resource"
 
-
 class CJsonManager:
     def __init__(self):
         self.m_pItem = None
         self.m_pPlant = None
+        self.m_pLevel = None
+        self.m_pSoil = None
 
-    @classmethod
-    async def init(cls) -> bool:
-        if not await cls.initItem():
+    async def init(self) -> bool:
+        if not await self.initItem():
             return False
 
-        if not await cls.initPlant():
+        if not await self.initPlant():
+            return False
+
+        if not await self.initLevel():
+            return False
+
+        if not await self.initSoil():
             return False
 
         return True
 
-    @classmethod
-    async def initItem(cls) -> bool:
+    async def initItem(self) -> bool:
         current_file_path = Path(__file__)
 
         try:
@@ -34,7 +39,7 @@ class CJsonManager:
                 current_file_path.resolve().parent / "config/item.json",
                 encoding="utf-8",
             ) as file:
-                cls.m_pItem = json.load(file)
+                self.m_pItem = json.load(file)
 
                 return True
         except FileNotFoundError:
@@ -44,8 +49,7 @@ class CJsonManager:
             logger.warning(f"item.json JSON格式错误: {e}")
             return False
 
-    @classmethod
-    async def initPlant(cls) -> bool:
+    async def initPlant(self) -> bool:
         current_file_path = Path(__file__)
 
         try:
@@ -53,7 +57,7 @@ class CJsonManager:
                 current_file_path.resolve().parent / "config/plant.json",
                 encoding="utf-8",
             ) as file:
-                cls.m_pPlant = json.load(file)
+                self.m_pPlant = json.load(file)
 
                 return True
         except FileNotFoundError:
@@ -62,3 +66,41 @@ class CJsonManager:
         except json.JSONDecodeError as e:
             logger.warning(f"plant.json JSON格式错误: {e}")
             return False
+
+    async def initLevel(self) -> bool:
+        current_file_path = Path(__file__)
+
+        try:
+            with open(
+                current_file_path.resolve().parent / "config/level.json",
+                encoding="utf-8",
+            ) as file:
+                self.m_pLevel = json.load(file)
+
+                return True
+        except FileNotFoundError:
+            logger.warning("plant.json 打开失败")
+            return False
+        except json.JSONDecodeError as e:
+            logger.warning(f"plant.json JSON格式错误: {e}")
+            return False
+
+    async def initSoil(self) -> bool:
+        current_file_path = Path(__file__)
+
+        try:
+            with open(
+                current_file_path.resolve().parent / "config/soil.json",
+                encoding="utf-8",
+            ) as file:
+                self.m_pSoil = json.load(file)
+
+                return True
+        except FileNotFoundError:
+            logger.warning("plant.json 打开失败")
+            return False
+        except json.JSONDecodeError as e:
+            logger.warning(f"plant.json JSON格式错误: {e}")
+            return False
+
+g_pJsonManager = CJsonManager()

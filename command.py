@@ -5,7 +5,8 @@ from nonebot_plugin_uninfo import Uninfo
 
 from zhenxun.utils.message import MessageUtils
 
-from .globalClass import g_pDrawImage, g_pSqlManager
+from .database import g_pSqlManager
+from .drawImage import g_pDrawImage
 
 diuse_register = on_alconna(
     Alconna("开通农场"),
@@ -23,7 +24,7 @@ async def _(session: Uninfo):
     if user:
         await MessageUtils.build_message("你已经有啦").send(reply_to=True)
     else:
-        info = {"uid": uid, "name": "测试", "level": 1, "point": 0}
+        info = {"uid": uid, "name": "测试", "exp": 0, "point": 100}
 
         aaa = await g_pSqlManager.appendUserByUserInfo(info)
 
@@ -50,7 +51,14 @@ diuse_farm = on_alconna(
 @diuse_farm.assign("$main")
 async def _(session: Uninfo):
     uid = str(session.user.id)
-    image = await g_pDrawImage.drawMyFarm()
+
+    level = await g_pSqlManager.getUserLevelByUid(uid)
+    if level <= 0:
+        await MessageUtils.build_message("尚未开通农场").send()
+
+        return None
+
+    image = await g_pDrawImage.drawMyFarm(uid)
 
     await MessageUtils.build_message(image).send()
 
@@ -96,6 +104,7 @@ async def _(session: Uninfo, name: Match[str], num: Query[int] = AlconnaQuery("n
             "请在指令后跟需要购买的种子名称"
         ).finish(reply_to=True)
 
+    # result = await ShopManage.buy_prop(session.user.id, name.result, num.result)
 
     uid = str(session.user.id)
     point = await g_pSqlManager.getUserPointByUid(uid)

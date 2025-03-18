@@ -4,7 +4,7 @@ import aiosqlite
 
 from zhenxun.services.log import logger
 
-from .config import g_sDBFilePath, g_sDBPath
+from .config import CJsonManager, g_sDBFilePath, g_sDBPath
 
 
 class CSqlManager:
@@ -42,7 +42,7 @@ class CSqlManager:
                 CREATE TABLE user (
                     uid INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL,
-                    level INTEGER DEFAULT 1,
+                    exp INTEGER DEFAULT 0,
                     point INTEGER DEFAULT 0
                 );
             """)
@@ -75,7 +75,7 @@ class CSqlManager:
                     user_dict = {
                         "uid": row[0],
                         "name": row[1],
-                        "level": row[2],
+                        "exp": row[2],
                         "point": row[3],
                     }
                     results.append(user_dict)
@@ -87,6 +87,14 @@ class CSqlManager:
 
     @classmethod
     async def getUserPointByUid(cls, uid: str) -> int:
+        """根据用户Uid获取用户农场币
+
+        Args:
+            uid (str): 用户Uid
+
+        Returns:
+            int: 用户农场币
+        """
         if len(uid) <= 0:
             return -1
 
@@ -99,6 +107,61 @@ class CSqlManager:
         except Exception as e:
             logger.warning(f"查询失败: {e}")
             return -1
+
+    @classmethod
+    async def getUserLevelByUid(cls, uid: str) -> int:
+        """根据用户Uid获取用户等级
+
+        Args:
+            uid (str): 用户Uid
+
+        Returns:
+            int: 用户等级`
+        """
+        if len(uid) <= 0:
+            return -1
+
+        try:
+            async with cls.m_pDB.execute(
+                "SELECT exp FROM user WHERE uid = ?", (uid,)
+            ) as cursor:
+                async for row in cursor:
+                    exp = int(row[0])
+
+                    #获取等级列表
+                    levelDict = g_pJsonManager.m_pLevel['level']
+
+                    sorted_keys = sorted(levelDict.keys(), key=lambda x: int(x), reverse=True)
+                    for key in sorted_keys:
+                        if exp >= levelDict[key]:
+                            return int(key)
+        except Exception as e:
+            logger.warning(f"查询失败: {e}")
+            return -1
+
+    @classmethod
+    async def getUserSoilByUid(cls, uid: str) -> int:
+        """根据用户Uid获取解锁地块
+
+        Args:
+            uid (str): 用户Uid
+
+        Returns:
+            int: 解锁几块地
+        """
+        if len(uid) <= 0:
+            return -1
+
+        level = await cls.getUserLevelByUid(uid)
+        soilNumber = 0
+        soil_list = g_pJsonManager.m_pLevel['soil'] # type: ignore
+
+        #获取解锁地块
+        for soil in soil_list:
+            if level >= soil:
+                soilNumber += 1
+
+        return soilNumber
 
     @classmethod
     async def appendUserByUserInfo(cls, info: list[dict]) -> bool:
@@ -114,9 +177,9 @@ class CSqlManager:
         try:
             await cls.m_pDB.execute(
                 """
-                INSERT INTO user (uid, name, level, point) VALUES (?, ?, ?, ?)
+                INSERT INTO user (uid, name, exp, point) VALUES (?, ?, ?, ?)
             """,
-                (info["uid"], info["name"], info["level"], info["point"]),
+                (info["uid"], info["name"], info["exp"], info["point"]),
             )
             await cls.m_pDB.commit()
 
@@ -124,3 +187,5 @@ class CSqlManager:
         except Exception as e:
             logger.warning(f"添加失败: {e}")
             return False
+
+g_pSqlManager = CSqlManager()
