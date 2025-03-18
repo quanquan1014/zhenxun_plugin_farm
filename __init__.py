@@ -31,16 +31,10 @@ driver = get_driver()
 @driver.on_startup
 async def start():
     # 初始化数据库
-    # await g_pSqlManager.init()
-
     await g_pSqlManager.init()
 
     # 初始化读取Json
-    # await g_pJsonManager.init()
     await g_pJsonManager.init()
-
-    # await g_pDrawImage.drawMyFarm("11223")
-    await g_pDrawImage.drawMyFarm("22")
 
 # 析构函数
 @driver.on_shutdown
