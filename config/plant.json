@@ -1,7 +1,6 @@
 {
     "zhuShi":
     [
-        "name: 名称",
         "level: 解锁等级",
         "limit: 限制等级  0：普通土地 1：红土地 2：黄土地 3：黑土地",
         "experience: 收获经验",
@@ -16,9 +15,8 @@
     ],
     "plant":
     {
-        "daBaiCai":
+        "大白菜":
         {
-            "name": "大白菜",
             "level": 0,
             "limit": 0,
             "experience": 5,
@@ -31,9 +29,8 @@
             "general": true,
             "sell": false
         },
-        "baiLuoBo":
+        "白萝卜":
         {
-            "name": "白萝卜",
             "level": 0,
             "limit": 0,
             "experience": 5,
@@ -46,9 +43,106 @@
             "general": true,
             "sell": false
         },
-        "huLuoBo":
+        "胡萝卜":
         {
-            "name": "胡萝卜",
+            "level": 0,
+            "limit": 0,
+            "experience": 5,
+            "harvest": 30,
+            "price": 5,
+            "time": 5,
+            "crop": 1,
+            "again": 0,
+            "phase": 5,
+            "general": true,
+            "sell": false
+        },
+        "牧草":
+        {
+            "level": 0,
+            "limit": 0,
+            "experience": 5,
+            "harvest": 30,
+            "price": 5,
+            "time": 5,
+            "crop": 1,
+            "again": 0,
+            "phase": 5,
+            "general": true,
+            "sell": false
+        },
+        "大蒜":
+        {
+            "level": 0,
+            "limit": 0,
+            "experience": 5,
+            "harvest": 30,
+            "price": 5,
+            "time": 5,
+            "crop": 1,
+            "again": 0,
+            "phase": 5,
+            "general": true,
+            "sell": false
+        },
+        "水稻":
+        {
+            "level": 0,
+            "limit": 0,
+            "experience": 5,
+            "harvest": 30,
+            "price": 5,
+            "time": 5,
+            "crop": 1,
+            "again": 0,
+            "phase": 5,
+            "general": true,
+            "sell": false
+        },
+        "小麦":
+        {
+            "level": 0,
+            "limit": 0,
+            "experience": 5,
+            "harvest": 30,
+            "price": 5,
+            "time": 5,
+            "crop": 1,
+            "again": 0,
+            "phase": 5,
+            "general": true,
+            "sell": false
+        },
+        "玉米":
+        {
+            "level": 0,
+            "limit": 0,
+            "experience": 5,
+            "harvest": 30,
+            "price": 5,
+            "time": 5,
+            "crop": 1,
+            "again": 0,
+            "phase": 5,
+            "general": true,
+            "sell": false
+        },
+        "油菜":
+        {
+            "level": 0,
+            "limit": 0,
+            "experience": 5,
+            "harvest": 30,
+            "price": 5,
+            "time": 5,
+            "crop": 1,
+            "again": 0,
+            "phase": 5,
+            "general": true,
+            "sell": false
+        },
+        "生菜":
+        {
             "level": 0,
             "limit": 0,
             "experience": 5,

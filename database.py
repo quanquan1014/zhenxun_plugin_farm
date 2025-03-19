@@ -128,6 +128,34 @@ class CSqlManager:
             return None
 
     @classmethod
+    async def initUserInfoByUid(cls,
+                                uid: str, name: str = "", exp: int = 0, point: int = 100):
+        #用户信息
+        userInfo =  f"""
+            INSERT INTO user (uid, name, exp, point) VALUES ({uid}, '{name}', {str(exp)}, {str(point)})
+            """
+
+        #用户仓库
+        userStorehouse = f"""
+            INSERT INTO storehouse (uid) VALUES ({uid});
+            """
+
+        userSoilInfo = f"""
+            INSERT INTO soil (uid) VALUES ({uid});
+            """
+
+        if not await cls.executeDB(userInfo):
+            return False
+
+        if not await cls.executeDB(userStorehouse):
+            return False
+
+        if not await cls.executeDB(userSoilInfo):
+            return False
+
+        return True
+
+    @classmethod
     async def getUserInfoByUid(cls, uid: str) -> list[dict]:
         """根据用户Uid获取用户信息
 
@@ -157,7 +185,7 @@ class CSqlManager:
 
                 return results
         except Exception as e:
-            logger.warning(f"查询失败: {e}")
+            logger.warning(f"getUserInfoByUid查询失败: {e}")
             return []
 
     @classmethod
@@ -175,12 +203,14 @@ class CSqlManager:
 
         try:
             async with cls.m_pDB.execute(
-                "SELECT point FROM user WHERE uid = ?", (uid,)
+                f"SELECT point FROM user WHERE uid = {uid}"
             ) as cursor:
                 async for row in cursor:
                     return int(row[0])
+
+            return -1
         except Exception as e:
-            logger.warning(f"查询失败: {e}")
+            logger.warning(f"getUserPointByUid查询失败: {e}")
             return -1
 
     @classmethod
@@ -231,14 +261,12 @@ class CSqlManager:
             return -1
 
         try:
-            async with cls.m_pDB.execute(
-                "SELECT exp FROM user WHERE uid = ?", (uid,)
-            ) as cursor:
+            async with cls.m_pDB.execute(f"SELECT exp FROM user WHERE uid = '{uid}'") as cursor:
                 async for row in cursor:
                     exp = int(row[0])
 
                     #获取等级列表
-                    levelDict = g_pJsonManager.m_pLevel['level']
+                    levelDict = g_pJsonManager.m_pLevel['level'] # type: ignore
 
                     sorted_keys = sorted(levelDict.keys(), key=lambda x: int(x), reverse=True)
                     for key in sorted_keys:
@@ -247,7 +275,7 @@ class CSqlManager:
 
             return -1
         except Exception as e:
-            logger.warning(f"查询失败: {e}")
+            logger.warning(f"getUserLevelByUid查询失败: {e}")
             return -1
 
     @classmethod
@@ -275,79 +303,47 @@ class CSqlManager:
         return soilNumber
 
     @classmethod
-    async def appendUserByUserInfo(cls, info: list[dict]) -> bool:
-        """添加用户信息
+    async def getUserPlantByUid(cls, uid: str) -> str:
+        """获取用户仓库种子信息
 
         Args:
             info (list[dict]): 用户信息
 
         Returns:
+            str: 仓库种子信息
+        """
+
+        if len(uid) <= 0:
+            return ""
+
+        try:
+            async with cls.m_pDB.execute(
+                "SELECT plant FROM storehouse WHERE uid = ?", (uid,)
+            ) as cursor:
+                async for row in cursor:
+                    return row[0]
+
+            return ""
+        except Exception as e:
+            logger.warning(f"getUserPlantByUid查询失败: {e}")
+            return ""
+
+    @classmethod
+    async def updateUserPlantByUid(cls, uid: str, plant: str) -> bool:
+        """添加用户仓库种子信息
+
+        Args:
+            info (list[dict]): 种子信息
+
+        Returns:
             bool: 是否添加成功
         """
 
-        try:
-            await cls.m_pDB.execute(
-                """
-                INSERT INTO user (uid, name, exp, point) VALUES (?, ?, ?, ?)
-            """,
-                (info["uid"], info["name"], info["exp"], info["point"]),
-            )
-            await cls.m_pDB.commit()
-
-            return True
-        except Exception as e:
-            logger.warning(f"添加失败: {e}")
+        if len(uid) <= 0:
             return False
 
-    # @classmethod
-    # async def getUserStorehousePlant(cls, info: list[dict]) -> str:
-    #     """获取用户仓库种子信息
+        sql = f"UPDATE storehouse SET plant = '{plant}' WHERE uid = '{uid}'"
 
-    #     Args:
-    #         info (list[dict]): 用户信息
-
-    #     Returns:
-    #         str: 仓库种子信息
-    #     """
-
-    #     try:
-    #         await cls.m_pDB.execute(
-    #             """
-    #             INSERT INTO user (uid, name, exp, point) VALUES (?, ?, ?, ?)
-    #         """,
-    #             (info["uid"], info["name"], info["exp"], info["point"]),
-    #         )
-    #         await cls.m_pDB.commit()
-
-    #         return True
-    #     except Exception as e:
-    #         logger.warning(f"添加失败: {e}")
-    #         return False
-
-    # @classmethod
-    # async def appendUserByUserInfo(cls, info: list[dict]) -> bool:
-    #     """添加用户信息
-
-    #     Args:
-    #         info (list[dict]): 用户信息
-
-    #     Returns:
-    #         bool: 是否添加成功
-    #     """
-
-    #     try:
-    #         await cls.m_pDB.execute(
-    #             """
-    #             INSERT INTO user (uid, name, exp, point) VALUES (?, ?, ?, ?)
-    #         """,
-    #             (info["uid"], info["name"], info["exp"], info["point"]),
-    #         )
-    #         await cls.m_pDB.commit()
-
-    #         return True
-    #     except Exception as e:
-    #         logger.warning(f"添加失败: {e}")
-    #         return False
-
+        return await cls.executeDB(sql)
 
 g_pSqlManager = CSqlManager()

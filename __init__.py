@@ -2,12 +2,13 @@ from nonebot import get_driver
 from nonebot.plugin import PluginMetadata
 
 from zhenxun.configs.utils import PluginExtraData
+from zhenxun.services.log import logger
 from zhenxun.utils.message import MessageUtils
 
 from .command import diuse_farm, diuse_register
 from .config import g_pJsonManager
 from .database import g_pSqlManager
-from .drawImage import g_pDrawImage
+from .farm.shop import g_pShopManager
 
 # from .globalClass import g_pDrawImage, g_pJsonManager, g_pSqlManager
 

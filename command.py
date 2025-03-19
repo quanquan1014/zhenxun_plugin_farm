@@ -3,10 +3,12 @@ from nonebot_plugin_alconna import (Alconna, AlconnaQuery, Args, Match, Option,
                                     Query, Subcommand, on_alconna, store_true)
 from nonebot_plugin_uninfo import Uninfo
 
+from zhenxun.services.log import logger
 from zhenxun.utils.message import MessageUtils
 
 from .database import g_pSqlManager
-from .drawImage import g_pDrawImage
+from .farm.farm import g_pFarmManager
+from .farm.shop import g_pShopManager
 
 diuse_register = on_alconna(
     Alconna("开通农场"),
@@ -24,9 +26,7 @@ async def _(session: Uninfo):
     if user:
         await MessageUtils.build_message("你已经有啦").send(reply_to=True)
     else:
-        info = {"uid": uid, "name": "测试", "exp": 0, "point": 100}
-
-        aaa = await g_pSqlManager.appendUserByUserInfo(info)
+        aaa = await g_pSqlManager.initUserInfoByUid(uid, str(session.user.name), 0, 100)
 
         await MessageUtils.build_message(str(aaa)).send(reply_to=True)
 
@@ -51,16 +51,14 @@ diuse_farm = on_alconna(
 @diuse_farm.assign("$main")
 async def _(session: Uninfo):
     uid = str(session.user.id)
+    point = await g_pSqlManager.getUserPointByUid(uid)
 
-    level = await g_pSqlManager.getUserLevelByUid(uid)
-    if level <= 0:
+    if point < 0:
         await MessageUtils.build_message("尚未开通农场").send()
-
         return None
 
-    image = await g_pDrawImage.drawMyFarm(uid)
-
-    await MessageUtils.build_message(image).send()
+    image = await g_pFarmManager.drawFarmByUid(uid)
+    await MessageUtils.build_message(image).send(reply_to=True)
 
 diuse_farm.shortcut(
     "我的农场币",
@@ -73,6 +71,10 @@ diuse_farm.shortcut(
 async def _(session: Uninfo):
     uid = str(session.user.id)
     point = await g_pSqlManager.getUserPointByUid(uid)
+
+    if point < 0:
+        await MessageUtils.build_message("尚未开通农场").send()
+        return None
 
     await MessageUtils.build_message(f"你的当前农场币为: {point}").send(reply_to=True)
 
@@ -88,7 +90,12 @@ async def _(session: Uninfo):
     uid = str(session.user.id)
     point = await g_pSqlManager.getUserPointByUid(uid)
 
-    await MessageUtils.build_message(f"你的当前农场币为: {point}").send(reply_to=True)
+    if point < 0:
+        await MessageUtils.build_message("尚未开通农场").send()
+        return None
+
+    image = await g_pShopManager.getPlantShopImage()
+    await MessageUtils.build_message(image).send()
 
 diuse_farm.shortcut(
     "购买种子(?P<name>.*?)",
@@ -104,19 +111,20 @@ async def _(session: Uninfo, name: Match[str], num: Query[int] = AlconnaQuery("n
             "请在指令后跟需要购买的种子名称"
         ).finish(reply_to=True)
 
-    # result = await ShopManage.buy_prop(session.user.id, name.result, num.result)
-
     uid = str(session.user.id)
     point = await g_pSqlManager.getUserPointByUid(uid)
 
-    await MessageUtils.build_message(f"你的当前农场币为: {point}").send(reply_to=True)
+    if point < 0:
+        await MessageUtils.build_message("尚未开通农场").send()
+        return None
 
-
+    result = await g_pShopManager.buyPlant(uid, name.result, num.result)
+    await MessageUtils.build_message(result).send(reply_to=True)
 
 diuse_farm.shortcut(
-    "种子商店",
+    "我的种子",
     command="我的农场",
-    arguments=["plant-shop"],
+    arguments=["my-plant"],
     prefix=True,
 )
 
@@ -125,4 +133,9 @@ async def _(session: Uninfo):
     uid = str(session.user.id)
     point = await g_pSqlManager.getUserPointByUid(uid)
 
-    await MessageUtils.build_message(f"你的当前农场币为: {point}").send(reply_to=True)
+    if point < 0:
+        await MessageUtils.build_message("尚未开通农场").send()
+        return None
+
+    result = await g_pFarmManager.getUserPlantByUid(uid)
+    await MessageUtils.build_message(result).send(reply_to=True)
