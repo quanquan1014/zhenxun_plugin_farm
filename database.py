@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 from io import StringIO
 from typing import Any, List, Optional
 
@@ -303,6 +304,47 @@ class CSqlManager:
         return soilNumber
 
     @classmethod
+    async def getUserSoilStatusBySoilID(cls, uid: str, soil: str) -> bool:
+        """根据土地块获取用户土地状态
+
+        Args:
+            uid (str): 用户Uid
+            soil (str): 土地块
+
+        Returns:
+            bool: 是否可以播种
+        """
+        if len(uid) <= 0:
+            return False
+
+        async with cls.m_pDB.execute(f"SELECT {soil} FROM soil WHERE uid = '{uid}'") as cursor:
+            async for row in cursor:
+                if row[0] == None:
+                    return True
+
+        return False
+
+    @classmethod
+    async def updateUserSoilStatusBySowing(cls, uid: str, soil: str, plant: str) -> bool:
+
+        if len(uid) <= 0:
+            return False
+
+        #获取种子信息 这里能崩我吃
+        plantInfo = g_pJsonManager.m_pPlant['plant'][plant] # type: ignore
+
+
+        currentTime = datetime.now()
+        newTime = currentTime + timedelta(minutes=int(plantInfo['time']))
+
+        #种子名称，当前阶段，预计长大/预计下个阶段，地状态：0：无 1：长草 2：生虫 3：缺水 4：枯萎状态
+        status = f"{plant},1,{int(newTime.timestamp())},0"
+
+        sql = f"UPDATE soil SET {soil} = '{status}' WHERE uid = '{uid}'"
+
+        return await cls.executeDB(sql)
+
+    @classmethod
     async def getUserPlantByUid(cls, uid: str) -> str:
         """获取用户仓库种子信息
 
@@ -317,9 +359,7 @@ class CSqlManager:
             return ""
 
         try:
-            async with cls.m_pDB.execute(
-                "SELECT plant FROM storehouse WHERE uid = ?", (uid,)
-            ) as cursor:
+            async with cls.m_pDB.execute(f"SELECT plant FROM storehouse WHERE uid = '{uid}'") as cursor:
                 async for row in cursor:
                     return row[0]
 

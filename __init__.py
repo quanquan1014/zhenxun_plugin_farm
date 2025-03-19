@@ -8,9 +8,8 @@ from zhenxun.utils.message import MessageUtils
 from .command import diuse_farm, diuse_register
 from .config import g_pJsonManager
 from .database import g_pSqlManager
+from .farm.farm import g_pFarmManager
 from .farm.shop import g_pShopManager
-
-# from .globalClass import g_pDrawImage, g_pJsonManager, g_pSqlManager
 
 __plugin_meta = PluginMetadata(
     name="真寻的农场",
@@ -36,6 +35,9 @@ async def start():
 
     # 初始化读取Json
     await g_pJsonManager.init()
+
+    aaa = await g_pFarmManager.sowing("1754798088", "胡萝卜", 1)
+    logger.info(aaa)
 
 # 析构函数
 @driver.on_shutdown

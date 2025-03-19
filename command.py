@@ -39,6 +39,7 @@ diuse_farm = on_alconna(
         Subcommand("buy-plant", Args["name?", str]["num?", int], help_text="购买种子"),
         Subcommand("my-plant", help_text="我的种子"),
         Subcommand("my-props", help_text="我的农场道具"),
+        Subcommand("sowing", Args["name?", str]["num?", int], help_text="播种"),
         Subcommand("buy", Args["name?", str]["num?", int], help_text="购买道具"),
         Subcommand("use", Args["name?", str]["num?", int], help_text="使用道具"),
         Subcommand("gold-list", Args["num?", int], help_text="金币排行"),
@@ -128,7 +129,7 @@ diuse_farm.shortcut(
     prefix=True,
 )
 
-@diuse_farm.assign("plant-shop")
+@diuse_farm.assign("my-plant")
 async def _(session: Uninfo):
     uid = str(session.user.id)
     point = await g_pSqlManager.getUserPointByUid(uid)
@@ -139,3 +140,28 @@ async def _(session: Uninfo):
 
     result = await g_pFarmManager.getUserPlantByUid(uid)
     await MessageUtils.build_message(result).send(reply_to=True)
+
+diuse_farm.shortcut(
+    "播种(?P<name>.*?)",
+    command="我的农场",
+    arguments=["sowing", "{name}"],
+    prefix=True,
+)
+
+async def _(session: Uninfo, name: Match[str], num: Query[int] = AlconnaQuery("num", 1),):
+    if not name.available:
+        await MessageUtils.build_message(
+            "请在指令后跟需要播种的种子名称"
+        ).finish(reply_to=True)
+
+    uid = str(session.user.id)
+    point = await g_pSqlManager.getUserPointByUid(uid)
+
+    if point < 0:
+        await MessageUtils.build_message("尚未开通农场").send()
+        return None
+
+    return None
+
+    # result = await g_pShopManager.buyPlant(uid, name.result, num.result)
+    # await MessageUtils.build_message(result).send(reply_to=True)
