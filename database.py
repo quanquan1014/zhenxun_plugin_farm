@@ -237,6 +237,46 @@ class CSqlManager:
             return -1
 
     @classmethod
+    async def getUserExpByUid(cls, uid: str) -> int:
+        """根据用户Uid获取用户经验
+
+        Args:
+            uid (str): 用户Uid
+
+        Returns:
+            int: 用户经验值
+        """
+        if len(uid) <= 0:
+            return -1
+
+        try:
+            async with cls.m_pDB.execute(f"SELECT exp FROM user WHERE uid = '{uid}'") as cursor:
+                async for row in cursor:
+                    return int(row[0])
+
+            return -1
+        except Exception as e:
+            logger.warning(f"getUserLevelByUid查询失败: {e}")
+            return -1
+
+    @classmethod
+    async def UpdateUserExpByUid(cls, uid: str, exp: int) -> bool:
+        """根据用户Uid刷新用户经验
+
+        Args:
+            uid (str): 用户Uid
+
+        Returns:
+            bool: 是否成功
+        """
+        if len(uid) <= 0:
+            return False
+
+        sql = f"UPDATE user SET exp = '{exp}' WHERE uid = '{uid}'"
+
+        return await cls.executeDB(sql)
+
+    @classmethod
     async def getUserLevelByUid(cls, uid: str) -> int:
         """根据用户Uid获取用户等级
 
@@ -330,8 +370,10 @@ class CSqlManager:
         if len(uid) <= 0:
             return False
 
-        if len(plant) <= 0:
+        if len(plant) <= 0 and status == 4:
             s = f",,,{status}"
+        elif len(plant) <= 0 and status != 4:
+            s = ""
         else:
             #获取种子信息 这里能崩我吃
             plantInfo = g_pJsonManager.m_pPlant['plant'][plant] # type: ignore

@@ -1,7 +1,7 @@
 from nonebot import get_driver
 from nonebot.plugin import PluginMetadata
 
-from zhenxun.configs.utils import PluginExtraData
+from zhenxun.configs.utils import Command, PluginExtraData
 from zhenxun.services.log import logger
 from zhenxun.utils.message import MessageUtils
 
@@ -11,19 +11,31 @@ from .database import g_pSqlManager
 from .farm.farm import g_pFarmManager
 from .farm.shop import g_pShopManager
 
-__plugin_meta = PluginMetadata(
-    name="真寻的农场",
+__plugin_meta__ = PluginMetadata(
+    name="真寻农场",
     description="快乐的农场时光",
     usage="""
-        农场快乐时光
+    你也要种地?
+    指令：
+        我的农场
+        我的农场币
+        种子商店
+        购买种子 [作物/种子名称] [数量]
+        我的种子
+        播种 [作物/种子名称] [数量]
+        收获
+        铲除
+        我的作物
+        出售作物 [作物/种子名称] [数量]
+        购买农场币 [数量]
     """.strip(),
     extra=PluginExtraData(
-        author="molanp",
+        author="Art_Sakura",
         version="1.0",
-        menu_type="群内小游戏",
-    ).dict(),
+        commands=[Command(command="我的农场")],
+        menu_type="群内小游戏"
+    ).to_dict(),
 )
-
 driver = get_driver()
 
 
@@ -35,8 +47,6 @@ async def start():
 
     # 初始化读取Json
     await g_pJsonManager.init()
-
-    # await g_pFarmManager.harvest("1754798088")
 
 # 析构函数
 @driver.on_shutdown
