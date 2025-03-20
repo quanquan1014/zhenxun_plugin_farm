@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timedelta
 from io import StringIO
+from math import e
 from typing import Any, List, Optional
 
 import aiosqlite
@@ -55,7 +56,8 @@ class CSqlManager:
             CREATE TABLE storehouse (
                 uid INTEGER PRIMARY KEY AUTOINCREMENT,
                 item TEXT DEFAULT '',
-                plant TEXT DEFAULT ''
+                plant TEXT DEFAULT '',
+                seed TEXT DEFAULT ''
             );
             """
 
@@ -106,31 +108,16 @@ class CSqlManager:
             return False
 
     @classmethod
-    async def executeDBCursor(cls, command: str) -> Optional[List[Any]]:
-        """执行自定义SQL并返回查询结果
+    async def initUserInfoByUid(cls, uid: str, name: str = "", exp: int = 0, point: int = 100):
+        """初始化用户信息
 
         Args:
-            command (str): SQL查询语句
-
-        Returns:
-            Optional[List[Any]]: 查询结果列表（成功时），None（失败时）
+            uid (str): 用户Uid
+            name (str): 农场名称
+            exp (int): 农场经验
+            point (int): 农场币
         """
-        if  len(command) <= 0:
-            logger.warning("空数据库命令")
-            return None
 
-        try:
-            async with cls.m_pDB.execute(command) as cursor:
-                # 将Row对象转换为字典列表
-                results = [dict(row) for row in await cursor.fetchall()]
-                return results
-        except Exception as e:
-            logger.error(f"数据库执行失败: {e}")
-            return None
-
-    @classmethod
-    async def initUserInfoByUid(cls,
-                                uid: str, name: str = "", exp: int = 0, point: int = 100):
         #用户信息
         userInfo =  f"""
             INSERT INTO user (uid, name, exp, point) VALUES ({uid}, '{name}', {str(exp)}, {str(point)})
@@ -141,6 +128,7 @@ class CSqlManager:
             INSERT INTO storehouse (uid) VALUES ({uid});
             """
 
+        #用户土地
         userSoilInfo = f"""
             INSERT INTO soil (uid) VALUES ({uid});
             """
@@ -304,48 +292,62 @@ class CSqlManager:
         return soilNumber
 
     @classmethod
-    async def getUserSoilStatusBySoilID(cls, uid: str, soil: str) -> bool:
+    async def getUserSoilStatusBySoilID(cls, uid: str, soil: str) -> tuple[bool, str]:
         """根据土地块获取用户土地状态
 
         Args:
             uid (str): 用户Uid
-            soil (str): 土地块
+            soil (str): 土地id
 
         Returns:
-            bool: 是否可以播种
+            tuple[bool, str]: [是否可以播种，土地信息]
         """
         if len(uid) <= 0:
-            return False
+            return False, ""
 
         async with cls.m_pDB.execute(f"SELECT {soil} FROM soil WHERE uid = '{uid}'") as cursor:
             async for row in cursor:
-                if row[0] == None:
-                    return True
+                if row[0] == None or len(row[0]) <= 0:
+                    return True, ""
+                else:
+                    return False, row[0]
 
-        return False
+        return False, ""
 
     @classmethod
-    async def updateUserSoilStatusBySowing(cls, uid: str, soil: str, plant: str) -> bool:
+    async def updateUserSoilStatusByPlantName(cls, uid: str, soil: str, plant: str = "", status: int = 0) -> bool:
+        """根据种子名称使用户播种
+
+        Args:
+            uid (str): 用户Uid
+            soil (str): 土地id
+            plant (str): 种子名称
+
+        Returns:
+            bool: 是否更新成功
+        """
 
         if len(uid) <= 0:
             return False
 
-        #获取种子信息 这里能崩我吃
-        plantInfo = g_pJsonManager.m_pPlant['plant'][plant] # type: ignore
+        if len(plant) <= 0:
+            s = f",,,{status}"
+        else:
+            #获取种子信息 这里能崩我吃
+            plantInfo = g_pJsonManager.m_pPlant['plant'][plant] # type: ignore
 
+            currentTime = datetime.now()
+            newTime = currentTime + timedelta(minutes=int(plantInfo['time']))
 
-        currentTime = datetime.now()
-        newTime = currentTime + timedelta(minutes=int(plantInfo['time']))
+            #种子名称，种下时间，预计成熟时间，地状态：0：无 1：长草 2：生虫 3：缺水 4：枯萎状态
+            s = f"{plant},{int(currentTime.timestamp())},{int(newTime.timestamp())},{status}"
 
-        #种子名称，当前阶段，预计长大/预计下个阶段，地状态：0：无 1：长草 2：生虫 3：缺水 4：枯萎状态
-        status = f"{plant},1,{int(newTime.timestamp())},0"
-
-        sql = f"UPDATE soil SET {soil} = '{status}' WHERE uid = '{uid}'"
+        sql = f"UPDATE soil SET {soil} = '{s}' WHERE uid = '{uid}'"
 
         return await cls.executeDB(sql)
 
     @classmethod
-    async def getUserPlantByUid(cls, uid: str) -> str:
+    async def getUserSeedByUid(cls, uid: str) -> str:
         """获取用户仓库种子信息
 
         Args:
@@ -353,6 +355,49 @@ class CSqlManager:
 
         Returns:
             str: 仓库种子信息
+        """
+
+        if len(uid) <= 0:
+            return ""
+
+        try:
+            async with cls.m_pDB.execute(f"SELECT seed FROM storehouse WHERE uid = '{uid}'") as cursor:
+                async for row in cursor:
+                    return row[0]
+
+            return ""
+        except Exception as e:
+            logger.warning(f"getUserSeedByUid查询失败: {e}")
+            return ""
+
+    @classmethod
+    async def updateUserSeedByUid(cls, uid: str, seed: str) -> bool:
+        """更新用户种子仓库
+
+        Args:
+            uid (str): 用户Uid
+            seed (str): 种子名称
+
+        Returns:
+            bool:
+        """
+
+        if len(uid) <= 0:
+            return False
+
+        sql = f"UPDATE storehouse SET seed = '{seed}' WHERE uid = '{uid}'"
+
+        return await cls.executeDB(sql)
+
+    @classmethod
+    async def getUserPlantByUid(cls, uid: str) -> str:
+        """获取用户仓库作物信息
+
+        Args:
+            info (list[dict]): 用户信息
+
+        Returns:
+            str: 仓库作物信息
         """
 
         if len(uid) <= 0:
@@ -370,13 +415,14 @@ class CSqlManager:
 
     @classmethod
     async def updateUserPlantByUid(cls, uid: str, plant: str) -> bool:
-        """添加用户仓库种子信息
+        """更新用户作物仓库
 
         Args:
-            info (list[dict]): 种子信息
+            uid (str): 用户Uid
+            plant (str): 作物名称
 
         Returns:
-            bool: 是否添加成功
+            bool:
         """
 
         if len(uid) <= 0:

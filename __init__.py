@@ -36,8 +36,7 @@ async def start():
     # 初始化读取Json
     await g_pJsonManager.init()
 
-    aaa = await g_pFarmManager.sowing("1754798088", "胡萝卜", 1)
-    logger.info(aaa)
+    # await g_pFarmManager.harvest("1754798088")
 
 # 析构函数
 @driver.on_shutdown

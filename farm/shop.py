@@ -9,11 +9,13 @@ from ..database import g_pSqlManager
 class CShopManager:
 
     @classmethod
-    async def getPlantShopImage(cls) -> bytes:
-        """by ATTomato
+    async def getSeedShopImage(cls) -> bytes:
+        """获取商店页面
+
+        TODO: 缺少翻页功能
 
         Returns:
-            bytes: _description_
+            bytes: 返回商店图片bytes
         """
 
         data_list = []
@@ -68,7 +70,18 @@ class CShopManager:
         return result.pic2bytes()
 
     @classmethod
-    async def buyPlant(cls, uid: str, name: str, num: int = 1) -> str:
+    async def buySeed(cls, uid: str, name: str, num: int = 1) -> str:
+        """购买种子
+
+        Args:
+            uid (str): 用户Uid
+            name (str): 植物名称
+            num (int, optional): 购买数量
+
+        Returns:
+            str:
+        """
+
         if num <= 0:
             return "请输入购买数量！"
 
@@ -89,7 +102,7 @@ class CShopManager:
         if point < total:
             return "你的农场币不够哦~ 快速速氪金吧！"
         else:
-            p = await g_pSqlManager.getUserPlantByUid(uid)
+            p = await g_pSqlManager.getUserSeedByUid(uid)
 
             if not p == None:
                 for item in p.split(','):
@@ -102,10 +115,10 @@ class CShopManager:
             else:
                 userPlants[name] = num
 
-            plant_list = [f"{k}|{v}" for k, v in userPlants.items()]
+            plantList = [f"{k}|{v}" for k, v in userPlants.items()]
 
             await g_pSqlManager.updateUserPointByUid(uid, point - total)
-            await g_pSqlManager.updateUserPlantByUid(uid, ','.join(plant_list))
+            await g_pSqlManager.updateUserSeedByUid(uid, ','.join(plantList))
 
             return f"成功购买{name}，当前仓库数量为：{userPlants[name]}，花费{total}农场币, 剩余{point - total}农场币"
 
