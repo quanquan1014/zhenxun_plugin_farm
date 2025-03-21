@@ -221,13 +221,7 @@ class CSqlManager:
             return -1
 
         try:
-            async with cls.m_pDB.execute(
-                """UPDATE user
-                SET point = ?
-                WHERE uid = ?
-                RETURNING point""",
-                (point, uid)
-            ) as cursor:
+            async with cls.m_pDB.execute(f"UPDATE user SET point = {point} WHERE uid = '{uid}'") as cursor:
                 async for row in cursor:
                     return int(row[0])
 
@@ -235,7 +229,7 @@ class CSqlManager:
             return -1
         except Exception as e:
             # 记录详细错误日志（建议记录堆栈）
-            logger.error(f"更新失败: {e}")
+            logger.error(f"金币更新失败: {e}")
             return -1
 
     @classmethod

@@ -374,7 +374,7 @@ class CFarmManager:
 
         experience = 0
         for (soil_name, (status, info)) in zip(soilNames, soilStatuses):
-            if not status:
+            if not info:
                 soilInfo = info.split(',')
                 if int(soilInfo[3]) == 4:
                     experience += 3
@@ -505,11 +505,14 @@ class CFarmManager:
         harvestRecords: List[str] = []
 
         isStealing = False
-        for(soilName, (status, info)) in zip(soilNames, soilStatuses):
+        for (soilName, (status, info)) in zip(soilNames, soilStatuses):
             isStealing = False
 
-            if not status:
+            if not info:
                 soilInfo = info.split(',')
+                if soilInfo[3] == 4:
+                    continue
+
                 plantId = soilInfo[0]
                 plantInfo = g_pJsonManager.m_pPlant['plant'][plantId]  # type: ignore
 
@@ -542,7 +545,8 @@ class CFarmManager:
                         plant[plantId] = plant.get(plantId, 0) + randomNumber
                         harvestRecords.append(f"成功偷到作物：{plantId}，数量为：{randomNumber}")
 
-                        stealingStatus += f"|{uid}-{randomNumber}"
+                        newElement = f"|{uid}-{randomNumber}"
+                        stealingStatus.append(newElement)
 
                         #如果将作物偷完，就直接更新状态 并记录用户偷取过
                         if plantInfo['harvest'] - randomNumber + stealingNumber == 0:
