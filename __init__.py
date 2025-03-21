@@ -27,7 +27,8 @@ __plugin_meta__ = PluginMetadata(
         铲除
         我的作物
         出售作物 [作物/种子名称] [数量]
-        购买农场币 [数量]
+        偷菜 at
+        购买农场币 [数量] 金币转换农场币比率是 1 : 2
     """.strip(),
     extra=PluginExtraData(
         author="Art_Sakura",

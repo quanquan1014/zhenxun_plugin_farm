@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from io import StringIO
 from math import e
 from typing import Any, List, Optional
@@ -47,7 +47,9 @@ class CSqlManager:
                 uid INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 exp INTEGER DEFAULT 0,
-                point INTEGER DEFAULT 0
+                point INTEGER DEFAULT 0,
+                soil INTEGER DEFAULT 3,
+                stealing TEXT DEFAULT NULL
             );
             """
 
@@ -120,7 +122,7 @@ class CSqlManager:
 
         #用户信息
         userInfo =  f"""
-            INSERT INTO user (uid, name, exp, point) VALUES ({uid}, '{name}', {str(exp)}, {str(point)})
+            INSERT INTO user (uid, name, exp, point, soil, stealing) VALUES ({uid}, '{name}', {exp}, {point}, 3, '{date.today()}|5')
             """
 
         #用户仓库
@@ -145,7 +147,7 @@ class CSqlManager:
         return True
 
     @classmethod
-    async def getUserInfoByUid(cls, uid: str) -> list[dict]:
+    async def getUserInfoByUid(cls, uid: str) -> dict:
         """根据用户Uid获取用户信息
 
         Args:
@@ -155,27 +157,27 @@ class CSqlManager:
             list[dict]: 用户信息
         """
         if len(uid) <= 0:
-            return []
+            return {}
 
         try:
             async with cls.m_pDB.execute(
                 "SELECT * FROM user WHERE uid = ?", (uid,)
             ) as cursor:
-                results = []
-
                 async for row in cursor:
-                    user_dict = {
+                    userDict = {
                         "uid": row[0],
                         "name": row[1],
                         "exp": row[2],
                         "point": row[3],
+                        "soil": row[4],
+                        "stealing": row[5]
                     }
-                    results.append(user_dict)
 
-                return results
+                    return userDict
+            return {}
         except Exception as e:
             logger.warning(f"getUserInfoByUid查询失败: {e}")
-            return []
+            return {}
 
     @classmethod
     async def getUserPointByUid(cls, uid: str) -> int:
@@ -318,18 +320,16 @@ class CSqlManager:
             int: 解锁几块地
         """
         if len(uid) <= 0:
-            return -1
+            return 0
 
-        level = await cls.getUserLevelByUid(uid)
-        soilNumber = 0
-        soil_list = g_pJsonManager.m_pLevel['soil'] # type: ignore
+        async with cls.m_pDB.execute(f"SELECT soil FROM user WHERE uid = '{uid}'") as cursor:
+            async for row in cursor:
+                if row[0] == None or len(row[0]) <= 0:
+                    return 0
+                else:
+                    return int(row[0])
 
-        #获取解锁地块
-        for soil in soil_list:
-            if level >= soil:
-                soilNumber += 1
-
-        return soilNumber
+        return 0
 
     @classmethod
     async def getUserSoilStatusBySoilID(cls, uid: str, soil: str) -> tuple[bool, str]:
@@ -355,7 +355,9 @@ class CSqlManager:
         return False, ""
 
     @classmethod
-    async def updateUserSoilStatusByPlantName(cls, uid: str, soil: str, plant: str = "", status: int = 0) -> bool:
+    async def updateUserSoilStatusByPlantName(cls, uid: str, soil: str,
+                                              plant: str = "",
+                                              status: int = 0) -> bool:
         """根据种子名称使用户播种
 
         Args:
@@ -371,7 +373,7 @@ class CSqlManager:
             return False
 
         if len(plant) <= 0 and status == 4:
-            s = f",,,{status}"
+            s = f",,,{status},"
         elif len(plant) <= 0 and status != 4:
             s = ""
         else:
@@ -381,8 +383,8 @@ class CSqlManager:
             currentTime = datetime.now()
             newTime = currentTime + timedelta(minutes=int(plantInfo['time']))
 
-            #种子名称，种下时间，预计成熟时间，地状态：0：无 1：长草 2：生虫 3：缺水 4：枯萎状态
-            s = f"{plant},{int(currentTime.timestamp())},{int(newTime.timestamp())},{status}"
+            #种子名称，种下时间，预计成熟时间，地状态：0：无 1：长草 2：生虫 3：缺水 4：枯萎，是否被偷 示例：QQ号-偷取数量|QQ号-偷取数量
+            s = f"{plant},{int(currentTime.timestamp())},{int(newTime.timestamp())},{status},"
 
         sql = f"UPDATE soil SET {soil} = '{s}' WHERE uid = '{uid}'"
 
