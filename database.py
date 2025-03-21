@@ -144,7 +144,7 @@ class CSqlManager:
         if not await cls.executeDB(userSoilInfo):
             return False
 
-        return True
+        return "开通农场成功"
 
     @classmethod
     async def getUserInfoByUid(cls, uid: str) -> dict:
@@ -324,7 +324,7 @@ class CSqlManager:
 
         async with cls.m_pDB.execute(f"SELECT soil FROM user WHERE uid = '{uid}'") as cursor:
             async for row in cursor:
-                if row[0] == None or len(row[0]) <= 0:
+                if not row[0]:
                     return 0
                 else:
                     return int(row[0])

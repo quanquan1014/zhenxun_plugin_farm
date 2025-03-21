@@ -93,7 +93,7 @@ class CShopManager:
             return "购买出错！请检查需购买的种子名称！"
 
 
-        level = g_pSqlManager.getUserLevelByUid(uid)
+        level = await g_pSqlManager.getUserLevelByUid(uid)
 
         if level < plantInfo['level']:
             return "你的等级不够哦，努努力吧"

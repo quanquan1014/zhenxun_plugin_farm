@@ -43,6 +43,7 @@ diuse_farm = on_alconna(
         Subcommand("harvest", help_text="收获"),
         Subcommand("eradicate", help_text="铲除"),
         Subcommand("my-plant", help_text="我的作物"),
+        # Subcommand("reclamation", help_text="开垦"),
         Subcommand("sell-plant", Args["name?", str]["num?", int], help_text="出售作物"),
         Subcommand("stealing", Args["target?", At], help_text="偷菜"),
         Subcommand("buy-point", Args["num?", int], help_text="购买农场币"),
@@ -58,7 +59,7 @@ async def _(session: Uninfo):
     point = await g_pSqlManager.getUserPointByUid(uid)
 
     if point < 0:
-        await MessageUtils.build_message("尚未开通农场").send()
+        await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
         return None
 
     image = await g_pFarmManager.drawFarmByUid(uid)
@@ -77,7 +78,7 @@ async def _(session: Uninfo):
     point = await g_pSqlManager.getUserPointByUid(uid)
 
     if point < 0:
-        await MessageUtils.build_message("尚未开通农场").send()
+        await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
         return None
 
     await MessageUtils.build_message(f"你的当前农场币为: {point}").send(reply_to=True)
@@ -95,7 +96,7 @@ async def _(session: Uninfo):
     point = await g_pSqlManager.getUserPointByUid(uid)
 
     if point < 0:
-        await MessageUtils.build_message("尚未开通农场").send()
+        await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
         return None
 
     image = await g_pShopManager.getSeedShopImage()
@@ -119,7 +120,7 @@ async def _(session: Uninfo, name: Match[str], num: Query[int] = AlconnaQuery("n
     point = await g_pSqlManager.getUserPointByUid(uid)
 
     if point < 0:
-        await MessageUtils.build_message("尚未开通农场").send()
+        await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
         return None
 
     result = await g_pShopManager.buySeed(uid, name.result, num.result)
@@ -138,7 +139,7 @@ async def _(session: Uninfo):
     point = await g_pSqlManager.getUserPointByUid(uid)
 
     if point < 0:
-        await MessageUtils.build_message("尚未开通农场").send()
+        await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
         return None
 
     result = await g_pFarmManager.getUserSeedByUid(uid)
@@ -162,7 +163,7 @@ async def _(session: Uninfo, name: Match[str], num: Query[int] = AlconnaQuery("n
     point = await g_pSqlManager.getUserPointByUid(uid)
 
     if point < 0:
-        await MessageUtils.build_message("尚未开通农场").send()
+        await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
         return None
 
     result = await g_pFarmManager.sowing(uid, name.result, num.result)
@@ -182,7 +183,7 @@ async def _(session: Uninfo):
     point = await g_pSqlManager.getUserPointByUid(uid)
 
     if point < 0:
-        await MessageUtils.build_message("尚未开通农场").send()
+        await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
         return None
 
     result = await g_pFarmManager.harvest(uid)
@@ -201,7 +202,7 @@ async def _(session: Uninfo):
     point = await g_pSqlManager.getUserPointByUid(uid)
 
     if point < 0:
-        await MessageUtils.build_message("尚未开通农场").send()
+        await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
         return None
 
     result = await g_pFarmManager.eradicate(uid)
@@ -221,11 +222,31 @@ async def _(session: Uninfo):
     point = await g_pSqlManager.getUserPointByUid(uid)
 
     if point < 0:
-        await MessageUtils.build_message("尚未开通农场").send()
+        await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
         return None
 
     result = await g_pFarmManager.getUserPlantByUid(uid)
     await MessageUtils.build_message(result).send(reply_to=True)
+
+# diuse_farm.shortcut(
+#     "开垦",
+#     command="我的农场",
+#     arguments=["reclamation"],
+#     prefix=True,
+# )
+
+# @diuse_farm.assign("reclamation")
+# async def _(session: Uninfo):
+#     uid = str(session.user.id)
+#     point = await g_pSqlManager.getUserPointByUid(uid)
+
+#     if point < 0:
+#         await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
+#         return None
+
+#     result = await g_pFarmManager.getUserPlantByUid(uid)
+#     await MessageUtils.build_message(result).send(reply_to=True)
+
 
 diuse_farm.shortcut(
     "出售作物(?P<name>.*?)",
@@ -245,10 +266,39 @@ async def _(session: Uninfo, name: Match[str], num: Query[int] = AlconnaQuery("n
     point = await g_pSqlManager.getUserPointByUid(uid)
 
     if point < 0:
-        await MessageUtils.build_message("尚未开通农场").send()
+        await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
         return None
 
     result = await g_pShopManager.sellPlantByUid(uid, name.result, num.result)
+    await MessageUtils.build_message(result).send(reply_to=True)
+
+diuse_farm.shortcut(
+    "偷菜",
+    command="我的农场",
+    arguments=["stealing"],
+    prefix=True,
+)
+
+@diuse_farm.assign("stealing")
+async def _(session: Uninfo, target: Match[At]):
+    uid = str(session.user.id)
+    point = await g_pSqlManager.getUserPointByUid(uid)
+
+    if point < 0:
+        await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
+        return None
+
+    if not target.available:
+        await MessageUtils.build_message("请在指令后跟需要at的人").finish(reply_to=True)
+
+    tar = target.result
+    point = await g_pSqlManager.getUserPointByUid(tar.target)
+
+    if point < 0:
+        await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
+        return None
+
+    result = await g_pFarmManager.stealing(uid, tar.target)
     await MessageUtils.build_message(result).send(reply_to=True)
 
 diuse_farm.shortcut(
@@ -269,37 +319,8 @@ async def _(session: Uninfo, num: Query[int] = AlconnaQuery("num", 0)):
     point = await g_pSqlManager.getUserPointByUid(uid)
 
     if point < 0:
-        await MessageUtils.build_message("尚未开通农场").send()
+        await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
         return None
 
     result = await g_pFarmManager.buyPointByUid(uid, num.result)
-    await MessageUtils.build_message(result).send(reply_to=True)
-
-diuse_farm.shortcut(
-    "偷菜",
-    command="我的农场",
-    arguments=["stealing"],
-    prefix=True,
-)
-
-@diuse_farm.assign("stealing")
-async def _(session: Uninfo, target: Match[At]):
-    uid = str(session.user.id)
-    point = await g_pSqlManager.getUserPointByUid(uid)
-
-    if point < 0:
-        await MessageUtils.build_message("尚未开通农场").send()
-        return None
-
-    if not target.available:
-        await MessageUtils.build_message("请在指令后跟需要at的人").finish(reply_to=True)
-
-    tar = target.result
-    point = await g_pSqlManager.getUserPointByUid(tar.target)
-
-    if point < 0:
-        await MessageUtils.build_message("尚未开通农场").send()
-        return None
-
-    result = await g_pFarmManager.stealing(uid, tar.target)
     await MessageUtils.build_message(result).send(reply_to=True)

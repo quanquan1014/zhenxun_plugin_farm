@@ -4,7 +4,6 @@ from datetime import date, datetime
 from io import StringIO
 from typing import Dict, List, Tuple
 
-from Python311.Lib.PIL.ImImagePlugin import number
 from zhenxun.models.user_console import UserConsole
 from zhenxun.services.log import logger
 from zhenxun.utils._build_image import BuildImage
@@ -72,7 +71,7 @@ class CFarmManager:
             y = soilPos[str(index + 1)]['y']
 
             #如果土地已经到达对应等级
-            if index > soilUnlock:
+            if index < soilUnlock:
                 await img.paste(soil, (x, y))
 
                 isPlant, plant, isRipe= await cls.drawSoilPlant(uid, f"soil{str(index + 1)}")
@@ -273,8 +272,6 @@ class CFarmManager:
                         # 更新种子数量
                         num -= 1
                         plantDict[name] -= 1
-                        if plantDict[name] == 0:
-                            del plantDict[name]
 
                         # 更新数据库
                         await g_pSqlManager.updateUserSoilStatusByPlantName(uid, soilName, name)
@@ -443,7 +440,7 @@ class CFarmManager:
                     else:
                         sell = "不可以"
 
-                    number = count * int(plantInfo['price'])
+                    number = int(count) * plantInfo['price']
 
                     data_list.append(
                         [
@@ -570,5 +567,16 @@ class CFarmManager:
 
             return "\n".join(harvestRecords)
 
+    # @classmethod
+    # async def reclamation(cls, uid: str) -> str:
+
+    #     userInfo = await g_pSqlManager.getUserInfoByUid(uid)
+    #     level = await g_pSqlManager.getUserLevelByUid(uid)
+
+    #     rec = g_pJsonManager["reclamation"]  # type: ignore
+
+    #     if not rec[f"{userInfo["soil"] + 1}"] == None
+
+    #     return ""
 
 g_pFarmManager = CFarmManager()
