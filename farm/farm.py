@@ -301,7 +301,7 @@ class CFarmManager:
 
         plant = {}
 
-        soilNames = [f"soil{i}" for i in range(soilUnlock)]
+        soilNames = [f"soil{i + 1}" for i in range(soilUnlock)]
         soilStatuses = await asyncio.gather(*[
             g_pSqlManager.getUserSoilStatusBySoilID(uid, name)
             for name in soilNames
@@ -312,30 +312,35 @@ class CFarmManager:
         experience = 0
 
         for (soil_name, (status, info)) in zip(soilNames, soilStatuses):
-            if not status:
-                soilInfo = info.split(',')
-                plantId = soilInfo[0]
-                plantInfo = g_pJsonManager.m_pPlant['plant'][plantId]  # type: ignore
+            if len(info) <= 0:
+                continue
 
-                currentTime = datetime.now()
-                matureTime = datetime.fromtimestamp(int(soilInfo[2]))
+            soilInfo = info.split(',')
+            if soilInfo[3] == 4:
+                continue
 
-                if currentTime >= matureTime:
-                    number = plantInfo['harvest']
+            plantId = soilInfo[0]
+            plantInfo = g_pJsonManager.m_pPlant['plant'][plantId]  # type: ignore
 
-                    #判断该土地作物是否被透过
-                    if len(soilInfo[4]) > 0:
-                        stealingStatus = soilInfo[4].split('|')
-                        for isUser in stealingStatus:
-                            user = isUser.split('-')
-                            number -= user[1]
+            currentTime = datetime.now()
+            matureTime = datetime.fromtimestamp(int(soilInfo[2]))
 
-                    plant[plantId] = plant.get(plantId, 0) + number
-                    experience += plantInfo['experience']
-                    harvestRecords.append(f"收获作物：{plantId}，数量为：{number}，经验为：{plantInfo['experience']}")
+            if currentTime >= matureTime:
+                number = plantInfo['harvest']
 
-                    #批量更新数据库操作
-                    await g_pSqlManager.updateUserSoilStatusByPlantName(uid, soil_name, "", 4)
+                #判断该土地作物是否被透过
+                if len(soilInfo[4]) > 0:
+                    stealingStatus = soilInfo[4].split('|')
+                    for isUser in stealingStatus:
+                        user = isUser.split('-')
+                        number -= user[1]
+
+                plant[plantId] = plant.get(plantId, 0) + number
+                experience += plantInfo['experience']
+                harvestRecords.append(f"收获作物：{plantId}，数量为：{number}，经验为：{plantInfo['experience']}")
+
+                #批量更新数据库操作
+                await g_pSqlManager.updateUserSoilStatusByPlantName(uid, soil_name, "", 4)
 
         if experience > 0:
             harvestRecords.append(f"\t累计获得经验：{experience}")
@@ -495,7 +500,7 @@ class CFarmManager:
         plant = {}
 
         #根据解锁土地，获取每块土地状态信息
-        soilNames = [f"soil{i}" for i in range(soilUnlock)]
+        soilNames = [f"soil{i + 1}" for i in range(soilUnlock)]
         soilStatuses = await asyncio.gather(*[
             g_pSqlManager.getUserSoilStatusBySoilID(target, name)
             for name in soilNames
@@ -508,53 +513,54 @@ class CFarmManager:
         for (soilName, (status, info)) in zip(soilNames, soilStatuses):
             isStealing = False
 
-            if not info:
-                soilInfo = info.split(',')
-                if soilInfo[3] == 4:
+            if len(info) < 0:
+                continue
+
+            soilInfo = info.split(',')
+            if soilInfo[3] == 4:
+                continue
+
+            plantId = soilInfo[0]
+            plantInfo = g_pJsonManager.m_pPlant['plant'][plantId]  # type: ignore
+
+            currentTime = datetime.now()
+            matureTime = datetime.fromtimestamp(int(soilInfo[2]))
+
+            stealingNumber = 0
+
+            if currentTime >= matureTime:
+                #先获取用户是否偷过该土地
+                stealingStatus = soilInfo[4].split('|')
+                for isUser in stealingStatus:
+                    user = isUser.split('-')
+
+                    if user[0] == uid:
+                        isStealing = True
+                        break
+
+                    stealingNumber += int(user[1])
+
+                #如果偷过，则跳过该土地
+                if isStealing:
                     continue
 
-                plantId = soilInfo[0]
-                plantInfo = g_pJsonManager.m_pPlant['plant'][plantId]  # type: ignore
+                stealingNumber -= plantInfo['harvest']
+                randomNumber = random.choice([1, 2])
+                randomNumber = min(randomNumber, stealingNumber)
 
-                currentTime = datetime.now()
-                matureTime = datetime.fromtimestamp(int(soilInfo[2]))
+                if randomNumber > 0:
+                    plant[plantId] = plant.get(plantId, 0) + randomNumber
+                    harvestRecords.append(f"成功偷到作物：{plantId}，数量为：{randomNumber}")
 
-                stealingNumber = 0
+                    stealingStatus.append(f"|{uid}-{randomNumber}")
 
-                if currentTime >= matureTime:
-                    #先获取用户是否偷过该土地
-                    stealingStatus = soilInfo[4].split('|')
-                    for isUser in stealingStatus:
-                        user = isUser.split('-')
+                    #如果将作物偷完，就直接更新状态 并记录用户偷取过
+                    if plantInfo['harvest'] - randomNumber + stealingNumber == 0:
+                        sql = f"UPDATE soil SET {soilName} = ',,,4,{stealingStatus}' WHERE uid = '{target}'"
+                    else:
+                        sql = f"UPDATE soil SET {soilName} = '{soilInfo[0]},{soilInfo[1]},{soilInfo[2]},{soilInfo[3]},{stealingStatus}' WHERE uid = '{target}'"
 
-                        if user[0] == uid:
-                            isStealing = True
-                            break
-
-                        stealingNumber += int(user[1])
-
-                    #如果偷过，则跳过该土地
-                    if isStealing:
-                        continue
-
-                    stealingNumber -= plantInfo['harvest']
-                    randomNumber = random.choice([1, 2])
-                    randomNumber = min(randomNumber, stealingNumber)
-
-                    if randomNumber > 0:
-                        plant[plantId] = plant.get(plantId, 0) + randomNumber
-                        harvestRecords.append(f"成功偷到作物：{plantId}，数量为：{randomNumber}")
-
-                        newElement = f"|{uid}-{randomNumber}"
-                        stealingStatus.append(newElement)
-
-                        #如果将作物偷完，就直接更新状态 并记录用户偷取过
-                        if plantInfo['harvest'] - randomNumber + stealingNumber == 0:
-                            sql = f"UPDATE soil SET {soilName} = ',,,4,{stealingStatus}' WHERE uid = '{target}'"
-                        else:
-                            sql = f"UPDATE soil SET {soilName} = '{soilInfo[0]},{soilInfo[1]},{soilInfo[2]},{soilInfo[3]},{stealingStatus}' WHERE uid = '{target}'"
-
-                        await g_pSqlManager.executeDB(sql)
+                    await g_pSqlManager.executeDB(sql)
 
         if not plant:
             return "目标没有作物可以被偷"

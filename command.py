@@ -295,7 +295,7 @@ async def _(session: Uninfo, target: Match[At]):
     point = await g_pSqlManager.getUserPointByUid(tar.target)
 
     if point < 0:
-        await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
+        await MessageUtils.build_message("目标尚未开通农场，快at我发送 开通农场 开通吧").send()
         return None
 
     result = await g_pFarmManager.stealing(uid, tar.target)
