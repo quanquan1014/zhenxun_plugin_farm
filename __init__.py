@@ -51,6 +51,9 @@ async def start():
     # 初始化读取Json
     await g_pJsonManager.init()
 
+    # await g_pFarmManager.reclamation("1754798088")
+    # await g_pSqlManager.initUserInfoByUid("1754798088", "Art_Sakura", 0, 100)
+
 # 析构函数
 @driver.on_shutdown
 async def shutdown():

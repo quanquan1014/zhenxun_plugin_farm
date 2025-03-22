@@ -371,7 +371,7 @@ class CFarmManager:
 
         soilUnlock = await g_pSqlManager.getUserSoilByUid(uid)
 
-        soilNames = [f"soil{i}" for i in range(soilUnlock)]
+        soilNames = [f"soil{i + 1}" for i in range(soilUnlock)]
         soilStatuses = await asyncio.gather(*[
             g_pSqlManager.getUserSoilStatusBySoilID(uid, name)
             for name in soilNames
@@ -583,10 +583,18 @@ class CFarmManager:
     #     userInfo = await g_pSqlManager.getUserInfoByUid(uid)
     #     level = await g_pSqlManager.getUserLevelByUid(uid)
 
-    #     rec = g_pJsonManager["reclamation"]  # type: ignore
+    #     rec = g_pJsonManager.m_pLevel["reclamation"]  # type: ignore
 
-    #     if not rec[f"{userInfo["soil"] + 1}"] == None
+    #     try:
+    #         rec = rec[f"{userInfo['soil'] + 1}"]
 
-    #     return ""
+    #         #TODO 缺少判断需要的Item
+    #         if level >= rec['level'] and userInfo['point'] >= rec['point']:
+
+
+    #     except Exception as e:
+    #         return "获取升级土地条件失败！"
+
+    #     return "开垦土地失败，未知错误"
 
 g_pFarmManager = CFarmManager()

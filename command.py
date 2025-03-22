@@ -247,6 +247,13 @@ async def _(session: Uninfo):
 #     result = await g_pFarmManager.getUserPlantByUid(uid)
 #     await MessageUtils.build_message(result).send(reply_to=True)
 
+#     diuse_farm.set_path_arg("reclamation", "")
+
+
+# @diuse_farm.got("test")
+# async def _(session: Uninfo, flag: str = ArgStr("flag")):
+#     await MessageUtils.build_message("测试一下").send(reply_to=True)
+
 
 diuse_farm.shortcut(
     "出售作物(?P<name>.*?)",
