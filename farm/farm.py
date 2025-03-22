@@ -379,7 +379,7 @@ class CFarmManager:
 
         experience = 0
         for (soil_name, (status, info)) in zip(soilNames, soilStatuses):
-            if not info:
+            if info:
                 soilInfo = info.split(',')
                 if int(soilInfo[3]) == 4:
                     experience += 3
