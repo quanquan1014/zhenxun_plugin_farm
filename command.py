@@ -43,7 +43,7 @@ diuse_farm = on_alconna(
         Subcommand("harvest", help_text="收获"),
         Subcommand("eradicate", help_text="铲除"),
         Subcommand("my-plant", help_text="我的作物"),
-        # Subcommand("reclamation", help_text="开垦"),
+        Subcommand("reclamation", Args["name", str], help_text="开垦"),
         Subcommand("sell-plant", Args["name?", str]["num?", int], help_text="出售作物"),
         Subcommand("stealing", Args["target?", At], help_text="偷菜"),
         Subcommand("buy-point", Args["num?", int], help_text="购买农场币"),
@@ -228,31 +228,31 @@ async def _(session: Uninfo):
     result = await g_pFarmManager.getUserPlantByUid(uid)
     await MessageUtils.build_message(result).send(reply_to=True)
 
-# diuse_farm.shortcut(
-#     "开垦",
-#     command="我的农场",
-#     arguments=["reclamation"],
-#     prefix=True,
-# )
+diuse_farm.shortcut(
+    "开垦",
+    command="我的农场",
+    arguments=["reclamation"],
+    prefix=True,
+)
 
-# @diuse_farm.assign("reclamation")
-# async def _(session: Uninfo):
-#     uid = str(session.user.id)
-#     point = await g_pSqlManager.getUserPointByUid(uid)
+@diuse_farm.assign("reclamation")
+async def _(session: Uninfo):
+    uid = str(session.user.id)
+    point = await g_pSqlManager.getUserPointByUid(uid)
 
-#     if point < 0:
-#         await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
-#         return None
+    if point < 0:
+        await MessageUtils.build_message("尚未开通农场，快at我发送 开通农场 开通吧").send()
+        return None
 
-#     result = await g_pFarmManager.getUserPlantByUid(uid)
-#     await MessageUtils.build_message(result).send(reply_to=True)
+    result = await g_pFarmManager.getUserPlantByUid(uid)
+    await MessageUtils.build_message(result).send(reply_to=True)
 
-#     diuse_farm.set_path_arg("reclamation", "")
+    diuse_farm.set_path_arg("reclamation", "result")
 
 
-# @diuse_farm.got("test")
-# async def _(session: Uninfo, flag: str = ArgStr("flag")):
-#     await MessageUtils.build_message("测试一下").send(reply_to=True)
+@diuse_farm.got_path("test", "测试一下")
+async def _(name: str):
+    await MessageUtils.build_message(name).send(reply_to=True)
 
 
 diuse_farm.shortcut(

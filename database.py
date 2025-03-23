@@ -375,7 +375,7 @@ class CSqlManager:
             plantInfo = g_pJsonManager.m_pPlant['plant'][plant] # type: ignore
 
             currentTime = datetime.now()
-            newTime = currentTime + timedelta(minutes=int(plantInfo['time']))
+            newTime = currentTime + timedelta(hours=int(plantInfo['time']))
 
             #种子名称，种下时间，预计成熟时间，地状态：0：无 1：长草 2：生虫 3：缺水 4：枯萎，是否被偷 示例：QQ号-偷取数量|QQ号-偷取数量
             s = f"{plant},{int(currentTime.timestamp())},{int(newTime.timestamp())},{status},"

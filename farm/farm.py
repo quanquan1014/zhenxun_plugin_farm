@@ -276,15 +276,19 @@ class CFarmManager:
                         # 更新数据库
                         await g_pSqlManager.updateUserSoilStatusByPlantName(uid, soilName, name)
 
-        await g_pSqlManager.updateUserSeedByUid(
-            uid,
-            ','.join([f"{k}|{v}" for k, v in plantDict.items()])
-        )
+        str = ""
 
         if num > 0:
-            return f"播种数量超出开垦土地数量，已将可播种土地成功播种{name}！仓库还剩下{plantDict[name]}个种子"
+            str = f"播种数量超出开垦土地数量，已将可播种土地成功播种{name}！仓库还剩下{plantDict[name]}个种子"
         else:
-            return f"播种{name}成功！仓库还剩下{plantDict[name]}个种子"
+            str = f"播种{name}成功！仓库还剩下{plantDict[name]}个种子"
+
+        await g_pSqlManager.updateUserSeedByUid(
+            uid,
+            ','.join([f"{k}|{v}" for k, v in plantDict.items() if v != 0])
+        )
+
+        return str
 
     @classmethod
     async def harvest(cls, uid: str) -> str:
@@ -513,11 +517,11 @@ class CFarmManager:
         for (soilName, (status, info)) in zip(soilNames, soilStatuses):
             isStealing = False
 
-            if len(info) < 0:
+            if not info:
                 continue
 
             soilInfo = info.split(',')
-            if soilInfo[3] == 4:
+            if int(soilInfo[3]) == 4:
                 continue
 
             plantId = soilInfo[0]
@@ -526,27 +530,32 @@ class CFarmManager:
             currentTime = datetime.now()
             matureTime = datetime.fromtimestamp(int(soilInfo[2]))
 
+            stealingStatus: list[str] = []
             stealingNumber = 0
-
             if currentTime >= matureTime:
-                #先获取用户是否偷过该土地
-                stealingStatus = soilInfo[4].split('|')
-                for isUser in stealingStatus:
-                    user = isUser.split('-')
 
-                    if user[0] == uid:
-                        isStealing = True
-                        break
+                if soilInfo[4]:
+                    #先获取用户是否偷过该土地
+                    stealingStatus = soilInfo[4].split('|')
 
-                    stealingNumber += int(user[1])
+                    for isUser in stealingStatus:
+                        user = isUser.split('-')
+
+                        if user[0] == uid:
+                            isStealing = True
+                            break
+
+                        stealingNumber -= int(user[1])
 
                 #如果偷过，则跳过该土地
                 if isStealing:
                     continue
 
-                stealingNumber -= plantInfo['harvest']
+                stealingNumber += plantInfo['harvest']
                 randomNumber = random.choice([1, 2])
                 randomNumber = min(randomNumber, stealingNumber)
+
+                logger.info(f"{randomNumber}")
 
                 if randomNumber > 0:
                     plant[plantId] = plant.get(plantId, 0) + randomNumber
@@ -569,14 +578,15 @@ class CFarmManager:
             await g_pSqlManager.updateUserPlantByUid(target, ','.join([f"{k}|{v}" for k, v in plant.items()]))
 
             userStealing[1] = int(userStealing[1]) - 1
+            # 转换所有元素为字符串
+            userStealing_str = [str(item) for item in userStealing]
 
-            sql = f"UPDATE user SET stealing = {'|'.join(userStealing)} WHERE uid = {uid}"
+            sql = f"UPDATE user SET stealing = {'|'.join(userStealing_str)} WHERE uid = {uid}"
 
             #更新用户每日偷取次数
             await g_pSqlManager.executeDB(sql)
 
             return "\n".join(harvestRecords)
-
     # @classmethod
     # async def reclamation(cls, uid: str) -> str:
 
