@@ -17,6 +17,7 @@ __plugin_meta__ = PluginMetadata(
     usage="""
     你也要种地?
     指令：
+        at 开通农场
         我的农场
         我的农场币
         种子商店
@@ -28,6 +29,7 @@ __plugin_meta__ = PluginMetadata(
         我的作物
         出售作物 [作物/种子名称] [数量]
         偷菜 at
+        开垦
         购买农场币 [数量] 金币转换农场币比率是 1 : 2
     """.strip(),
     extra=PluginExtraData(
@@ -48,6 +50,9 @@ async def start():
 
     # 初始化读取Json
     await g_pJsonManager.init()
+
+    # await g_pFarmManager.reclamation("1754798088")
+    # await g_pSqlManager.initUserInfoByUid("1754798088", "Art_Sakura", 0, 100)
 
 # 析构函数
 @driver.on_shutdown

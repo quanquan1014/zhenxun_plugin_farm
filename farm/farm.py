@@ -579,6 +579,8 @@ class CFarmManager:
             return "你已经偷过目标啦，请手下留情"
         else:
             userStealing[1] = int(userStealing[1]) - 1
+            # 转换所有元素为字符串
+            userStealing_str = [str(item) for item in userStealing]
 
             sql = f"UPDATE user SET stealing = '{userStealing[0]}|{userStealing[1]}' WHERE uid = {uid}"
 
@@ -586,6 +588,8 @@ class CFarmManager:
             await g_pSqlManager.executeDB(sql)
 
             return "\n".join(harvestRecords)
+    # @classmethod
+    # async def reclamation(cls, uid: str) -> str:
 
     @classmethod
     async def reclamationCondition(cls, uid: str) -> str:
