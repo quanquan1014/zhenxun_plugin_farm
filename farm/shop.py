@@ -93,12 +93,10 @@ class CShopManager:
             return "购买出错！请检查需购买的种子名称！"
 
 
-        level = g_pSqlManager.getUserLevelByUid(uid)
+        level = await g_pSqlManager.getUserLevelByUid(uid)
 
-        if level < plantInfo['level']:
+        if level[0] < int(plantInfo['level']):
             return "你的等级不够哦，努努力吧"
-
-        userPlants = {}
 
         point = await g_pSqlManager.getUserPointByUid(uid)
         total = int(plantInfo['price']) * num
@@ -108,25 +106,12 @@ class CShopManager:
         if point < total:
             return "你的农场币不够哦~ 快速速氪金吧！"
         else:
-            p = await g_pSqlManager.getUserSeedByUid(uid)
-
-            if not p == None:
-                for item in p.split(','):
-                    if '|' in item:
-                        plant_name, count = item.split('|', 1)  # 分割一次，避免多竖线问题
-                        userPlants[plant_name] = int(count)
-
-            if name in userPlants:
-                userPlants[name] += num
-            else:
-                userPlants[name] = num
-
-            plantList = [f"{k}|{v}" for k, v in userPlants.items()]
-
             await g_pSqlManager.updateUserPointByUid(uid, point - total)
-            await g_pSqlManager.updateUserSeedByUid(uid, ','.join(plantList))
 
-            return f"成功购买{name}，当前仓库数量为：{userPlants[name]}，花费{total}农场币, 剩余{point - total}农场币"
+            if await g_pSqlManager.addUserSeedByPlant(uid, name, num) == False:
+                return "购买失败，执行数据库错误！"
+
+            return f"成功购买{name}，花费{total}农场币, 剩余{point - total}农场币"
 
     @classmethod
     async def sellPlantByUid(cls, uid: str, name: str = "", num: int = 1) -> str:

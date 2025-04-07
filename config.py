@@ -11,10 +11,10 @@ g_sResourcePath = Path(__file__).resolve().parent / "resource"
 
 class CJsonManager:
     def __init__(self):
-        self.m_pItem = None
-        self.m_pPlant = None
-        self.m_pLevel = None
-        self.m_pSoil = None
+        self.m_pItem = {}
+        self.m_pPlant = {}
+        self.m_pLevel = {}
+        self.m_pSoil = {}
 
     async def init(self) -> bool:
         if not await self.initItem():
@@ -79,10 +79,10 @@ class CJsonManager:
 
                 return True
         except FileNotFoundError:
-            logger.warning("plant.json 打开失败")
+            logger.warning("level.json 打开失败")
             return False
         except json.JSONDecodeError as e:
-            logger.warning(f"plant.json JSON格式错误: {e}")
+            logger.warning(f"level.json JSON格式错误: {e}")
             return False
 
     async def initSoil(self) -> bool:
@@ -97,10 +97,10 @@ class CJsonManager:
 
                 return True
         except FileNotFoundError:
-            logger.warning("plant.json 打开失败")
+            logger.warning("soil.json 打开失败")
             return False
         except json.JSONDecodeError as e:
-            logger.warning(f"plant.json JSON格式错误: {e}")
+            logger.warning(f"soil.json JSON格式错误: {e}")
             return False
 
 g_pJsonManager = CJsonManager()

@@ -1,3 +1,4 @@
+import math
 import os
 from datetime import date, datetime, timedelta
 from io import StringIO
@@ -144,7 +145,7 @@ class CSqlManager:
         if not await cls.executeDB(userSoilInfo):
             return False
 
-        return True
+        return "开通农场成功"
 
     @classmethod
     async def getUserInfoByUid(cls, uid: str) -> dict:
@@ -193,9 +194,7 @@ class CSqlManager:
             return -1
 
         try:
-            async with cls.m_pDB.execute(
-                f"SELECT point FROM user WHERE uid = {uid}"
-            ) as cursor:
+            async with cls.m_pDB.execute(f"SELECT point FROM user WHERE uid = {uid}") as cursor:
                 async for row in cursor:
                     return int(row[0])
 
@@ -221,21 +220,14 @@ class CSqlManager:
             return -1
 
         try:
-            async with cls.m_pDB.execute(
-                """UPDATE user
-                SET point = ?
-                WHERE uid = ?
-                RETURNING point""",
-                (point, uid)
-            ) as cursor:
+            async with cls.m_pDB.execute(f"UPDATE user SET point = {point} WHERE uid = {uid}") as cursor:
                 async for row in cursor:
                     return int(row[0])
 
             logger.info(f"未找到用户或未修改数据: uid={uid}")
             return -1
         except Exception as e:
-            # 记录详细错误日志（建议记录堆栈）
-            logger.error(f"更新失败: {e}")
+            logger.error(f"金币更新失败: {e}")
             return -1
 
     @classmethod
@@ -252,7 +244,7 @@ class CSqlManager:
             return -1
 
         try:
-            async with cls.m_pDB.execute(f"SELECT exp FROM user WHERE uid = '{uid}'") as cursor:
+            async with cls.m_pDB.execute(f"SELECT exp FROM user WHERE uid = {uid}") as cursor:
                 async for row in cursor:
                     return int(row[0])
 
@@ -274,40 +266,43 @@ class CSqlManager:
         if len(uid) <= 0:
             return False
 
-        sql = f"UPDATE user SET exp = '{exp}' WHERE uid = '{uid}'"
+        sql = f"UPDATE user SET exp = '{exp}' WHERE uid = {uid}"
 
         return await cls.executeDB(sql)
 
     @classmethod
-    async def getUserLevelByUid(cls, uid: str) -> int:
+    async def getUserLevelByUid(cls, uid: str) -> tuple[int, int, int]:
         """根据用户Uid获取用户等级
 
         Args:
             uid (str): 用户Uid
 
         Returns:
-            int: 用户等级`
+            tuple[int, int, int]: (当前等级, 下级所需经验, 当前等级剩余经验)
         """
         if len(uid) <= 0:
-            return -1
+            return -1, -1, -1
 
         try:
-            async with cls.m_pDB.execute(f"SELECT exp FROM user WHERE uid = '{uid}'") as cursor:
+            async with cls.m_pDB.execute(f"SELECT exp FROM user WHERE uid = {uid}") as cursor:
                 async for row in cursor:
                     exp = int(row[0])
 
-                    #获取等级列表
-                    levelDict = g_pJsonManager.m_pLevel['level'] # type: ignore
+                    #计算当前等级（向下取整）
+                    level = math.floor((math.sqrt(1 + 4 * exp / 100) - 1) / 2)
 
-                    sorted_keys = sorted(levelDict.keys(), key=lambda x: int(x), reverse=True)
-                    for key in sorted_keys:
-                        if exp >= levelDict[key]:
-                            return int(key)
+                    #计算下级所需经验 下级所需经验为：200 + 当前等级 * 200
+                    nextLevelExp = 200 * (level + 1)
+                    currentLevelExp = 100 * level * (level + 1)
 
-            return -1
+                    remainingExp = exp - currentLevelExp
+
+                    return level, nextLevelExp, remainingExp
+
+            return -1, -1, -1
         except Exception as e:
             logger.warning(f"getUserLevelByUid查询失败: {e}")
-            return -1
+            return -1, -1, -1
 
     @classmethod
     async def getUserSoilByUid(cls, uid: str) -> int:
@@ -322,9 +317,9 @@ class CSqlManager:
         if len(uid) <= 0:
             return 0
 
-        async with cls.m_pDB.execute(f"SELECT soil FROM user WHERE uid = '{uid}'") as cursor:
+        async with cls.m_pDB.execute(f"SELECT soil FROM user WHERE uid = {uid}") as cursor:
             async for row in cursor:
-                if row[0] == None or len(row[0]) <= 0:
+                if not row[0]:
                     return 0
                 else:
                     return int(row[0])
@@ -345,7 +340,7 @@ class CSqlManager:
         if len(uid) <= 0:
             return False, ""
 
-        async with cls.m_pDB.execute(f"SELECT {soil} FROM soil WHERE uid = '{uid}'") as cursor:
+        async with cls.m_pDB.execute(f"SELECT {soil} FROM soil WHERE uid = {uid}") as cursor:
             async for row in cursor:
                 if row[0] == None or len(row[0]) <= 0:
                     return True, ""
@@ -381,12 +376,12 @@ class CSqlManager:
             plantInfo = g_pJsonManager.m_pPlant['plant'][plant] # type: ignore
 
             currentTime = datetime.now()
-            newTime = currentTime + timedelta(minutes=int(plantInfo['time']))
+            newTime = currentTime + timedelta(hours=int(plantInfo['time']))
 
             #种子名称，种下时间，预计成熟时间，地状态：0：无 1：长草 2：生虫 3：缺水 4：枯萎，是否被偷 示例：QQ号-偷取数量|QQ号-偷取数量
             s = f"{plant},{int(currentTime.timestamp())},{int(newTime.timestamp())},{status},"
 
-        sql = f"UPDATE soil SET {soil} = '{s}' WHERE uid = '{uid}'"
+        sql = f"UPDATE soil SET {soil} = '{s}' WHERE uid = {uid}"
 
         return await cls.executeDB(sql)
 
@@ -405,7 +400,7 @@ class CSqlManager:
             return ""
 
         try:
-            async with cls.m_pDB.execute(f"SELECT seed FROM storehouse WHERE uid = '{uid}'") as cursor:
+            async with cls.m_pDB.execute(f"SELECT seed FROM storehouse WHERE uid = {uid}") as cursor:
                 async for row in cursor:
                     return row[0]
 
@@ -429,7 +424,43 @@ class CSqlManager:
         if len(uid) <= 0:
             return False
 
-        sql = f"UPDATE storehouse SET seed = '{seed}' WHERE uid = '{uid}'"
+        sql = f"UPDATE storehouse SET seed = '{seed}' WHERE uid = {uid}"
+
+        return await cls.executeDB(sql)
+
+    @classmethod
+    async def addUserSeedByPlant(cls, uid: str, seed: str, num: int) -> bool:
+        """添加作物信息至仓库
+
+        Args:
+            uid (str): 用户Uid
+            seed (str): 种子名称
+            num(str): 种子数量
+
+        Returns:
+            bool:
+        """
+
+        if len(uid) <= 0:
+            return False
+
+        seedsDict = {}
+        currentSeeds  = await cls.getUserSeedByUid(uid)
+
+        if currentSeeds:
+            for item in currentSeeds.split(','):
+                if item.strip():
+                    name, count = item.split('|')
+                    seedsDict[name.strip()] = int(count.strip())
+
+        if seed in seedsDict:
+            seedsDict[seed] += num
+        else:
+            seedsDict[seed] = num
+
+        updatedSeeds = ','.join([f"{name}|{count}" for name, count in seedsDict.items()])
+
+        sql = f"UPDATE storehouse SET seed = '{updatedSeeds}' WHERE uid = {uid}"
 
         return await cls.executeDB(sql)
 
@@ -448,7 +479,7 @@ class CSqlManager:
             return ""
 
         try:
-            async with cls.m_pDB.execute(f"SELECT plant FROM storehouse WHERE uid = '{uid}'") as cursor:
+            async with cls.m_pDB.execute(f"SELECT plant FROM storehouse WHERE uid = {uid}") as cursor:
                 async for row in cursor:
                     return row[0]
 
@@ -472,7 +503,43 @@ class CSqlManager:
         if len(uid) <= 0:
             return False
 
-        sql = f"UPDATE storehouse SET plant = '{plant}' WHERE uid = '{uid}'"
+        sql = f"UPDATE storehouse SET plant = '{plant}' WHERE uid = {uid}"
+
+        return await cls.executeDB(sql)
+
+    @classmethod
+    async def addUserPlantByPlant(cls, uid: str, plant: str, num: int) -> bool:
+        """添加作物信息至仓库
+
+        Args:
+            uid (str): 用户Uid
+            plant (str): 作物名称
+            num(str): 作物数量
+
+        Returns:
+            bool:
+        """
+
+        if len(uid) <= 0:
+            return False
+
+        plantsDict = {}
+        currentPlants  = await cls.getUserPlantByUid(uid)
+
+        if currentPlants:
+            for item in currentPlants.split(','):
+                if item.strip():
+                    name, count = item.split('|')
+                    plantsDict[name.strip()] = int(count.strip())
+
+        if plant in plantsDict:
+            plantsDict[plant] += num
+        else:
+            plantsDict[plant] = num
+
+        updatedPlants = ','.join([f"{name}|{count}" for name, count in plantsDict.items()])
+
+        sql = f"UPDATE storehouse SET plant = '{updatedPlants}' WHERE uid = {uid}"
 
         return await cls.executeDB(sql)
 
