@@ -1,5 +1,6 @@
 import math
 import os
+import re
 from datetime import date, datetime, timedelta
 from io import StringIO
 from math import e
@@ -20,7 +21,6 @@ class CSqlManager:
     async def cleanup(cls):
         if cls.m_pDB:
             await cls.m_pDB.close()
-            cls.m_pDB = None
 
     @classmethod
     async def init(cls) -> bool:
@@ -28,62 +28,125 @@ class CSqlManager:
 
         cls.m_pDB = await aiosqlite.connect(g_sDBFilePath)
 
-        if bIsExist == False:
-            # TODO 缺少判断创建失败事件
-            await cls.createDB()
+        #if bIsExist == False:
+            #TODO 缺少判断创建失败事件
+            #await cls.createDB()
+
+        await cls.checkDB()
 
         return True
 
     @classmethod
-    async def createDB(cls) -> bool:
-        """初始化数据库用户信息表
+    async def getColumns(cls, tableName):
+        """ 由AI生成
+            获取表的列信息
+        """
+        try:
+            cursor = await cls.m_pDB.execute(f'PRAGMA table_info("{tableName}")')
+            columns = [row[1] for row in await cursor.fetchall()]
+            return columns
+        except aiosqlite.Error as e:
+            logger.error(f"获取表结构失败: {str(e)}")
+            raise
+
+    @classmethod
+    async def ensure_table_exists(cls, tableName, columns) -> bool:
+        """智能创建并分析数据库表、字段是否存在 由AI生成
+
+        Args:
+            tableName (_type_): 表名
+            columns (_type_): 字典
 
         Returns:
-            bool: 是否创建成功
+            _type_: _description_
         """
+        try:
+            current_columns = await cls.getColumns(tableName)
 
-        #用户信息
-        userInfo =  """
-            CREATE TABLE user (
-                uid INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                exp INTEGER DEFAULT 0,
-                point INTEGER DEFAULT 0,
-                soil INTEGER DEFAULT 3,
-                stealing TEXT DEFAULT NULL
-            );
-            """
+            #检查表是否存在
+            table_exists = bool(current_columns)
 
-        #用户仓库
-        userStorehouse =  """
-            CREATE TABLE storehouse (
-                uid INTEGER PRIMARY KEY AUTOINCREMENT,
-                item TEXT DEFAULT '',
-                plant TEXT DEFAULT '',
-                seed TEXT DEFAULT ''
-            );
-            """
+            #如果表不存在，直接创建
+            if not table_exists:
+                create_sql = f'''
+                    CREATE TABLE "{tableName}" (
+                        {", ".join(f'"{k}" {v}' for k, v in columns.items())}
+                    );
+                '''
+                await cls.m_pDB.execute(create_sql)
+                await cls.m_pDB.commit()  #显式提交新建表操作
+                return True
 
-        #用户土地信息
-        with StringIO() as buffer:
-            buffer.write("CREATE TABLE soil (")
-            buffer.write("uid INTEGER PRIMARY KEY AUTOINCREMENT,")
+            #表存在时的处理
+            columns_to_add = []
+            columns_to_remove = []
 
-            fields = [f"soil{i} TEXT DEFAULT ''" for i in range(1, 31)]
-            buffer.write(",\n".join(fields))
+            #检查需要添加的列
+            for k, v in columns.items():
+                if k not in current_columns:
+                    columns_to_add.append(f'"{k}" {v}')
 
-            buffer.write(");")
+            #检查需要移除的列
+            for col in current_columns:
+                if col not in columns.keys():
+                    columns_to_remove.append(col)
 
-            userSoilInfo = buffer.getvalue()
+            #执行修改
+            if columns_to_add or columns_to_remove:
+                try:
+                    #开启事务（使用connection级别的事务控制）
+                    await cls.m_pDB.execute('BEGIN TRANSACTION')
 
-        if not await cls.executeDB(userInfo):
+                    #添加新列
+                    for col_def in columns_to_add:
+                        await cls.m_pDB.execute(f'ALTER TABLE "{tableName}" ADD COLUMN {col_def}')
+
+                    #删除旧列
+                    for col in columns_to_remove:
+                        await cls.m_pDB.execute(f'ALTER TABLE "{tableName}" DROP COLUMN "{col}"')
+
+                    #显式提交事务
+                    await cls.m_pDB.commit()
+                    return True
+                except Exception as e:
+                    #回滚事务
+                    await cls.m_pDB.rollback()
+                    logger.error(f"表结构迁移失败: {str(e)}")
+
             return False
+        except aiosqlite.Error as e:
+            logger.error(f"表结构迁移失败: {str(e)}")
 
-        if not await cls.executeDB(userStorehouse):
-            return False
+        return True
 
-        if not await cls.executeDB(userSoilInfo):
-            return False
+    @classmethod
+    async def checkDB(cls) -> bool:
+        userInfo = {
+            "uid": "INTEGER PRIMARY KEY AUTOINCREMENT",
+            "name": "TEXT NOT NULL",
+            "exp": "INTEGER DEFAULT 0",
+            "point": "INTEGER DEFAULT 0",
+            "soil": "INTEGER DEFAULT 3",
+            "stealing": "TEXT DEFAULT NULL"
+        }
+
+        userStorehouse = {
+            "uid": "INTEGER PRIMARY KEY AUTOINCREMENT",
+            "item": "TEXT DEFAULT ''",
+            "plant": "TEXT DEFAULT ''",
+            "seed": "TEXT DEFAULT ''"
+        }
+
+        userSoilInfo = {
+            "uid": "INTEGER PRIMARY KEY AUTOINCREMENT",
+            **{f"soil{i}": "TEXT DEFAULT ''" for i in range(1, 31)}
+        }
+
+        await cls.ensure_table_exists("user", userInfo)
+
+        await cls.ensure_table_exists("storehouse", userStorehouse)
+
+        await cls.ensure_table_exists("soil", userSoilInfo)
 
         return True
 
@@ -373,7 +436,7 @@ class CSqlManager:
             s = ""
         else:
             #获取种子信息 这里能崩我吃
-            plantInfo = g_pJsonManager.m_pPlant['plant'][plant] # type: ignore
+            plantInfo = g_pJsonManager.m_pPlant['plant'][plant] #type: ignore
 
             currentTime = datetime.now()
             newTime = currentTime + timedelta(hours=int(plantInfo['time']))

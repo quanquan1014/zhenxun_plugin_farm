@@ -1,11 +1,11 @@
 from nonebot import get_driver
 from nonebot.plugin import PluginMetadata
 
-from zhenxun.configs.utils import Command, PluginExtraData
+from zhenxun.configs.utils import Command, PluginExtraData, RegisterConfig
 from zhenxun.services.log import logger
 from zhenxun.utils.message import MessageUtils
 
-from .command import diuse_farm, diuse_register
+from .command import diuse_farm, diuse_register, reclamation
 from .config import g_pJsonManager
 from .database import g_pSqlManager
 from .farm.farm import g_pFarmManager
@@ -30,13 +30,33 @@ __plugin_meta__ = PluginMetadata(
         出售作物 [作物/种子名称] [数量]
         偷菜 at
         开垦
-        购买农场币 [数量] 金币转换农场币比率是 1 : 2
+        购买农场币 [数量] 数量为消耗金币的数量
     """.strip(),
     extra=PluginExtraData(
         author="Art_Sakura",
         version="1.0",
         commands=[Command(command="我的农场")],
-        menu_type="群内小游戏"
+        menu_type="群内小游戏",
+        configs=[
+            RegisterConfig(
+                key="兑换倍数",
+                value="2",
+                help="金币兑换农场币的倍数 默认值为: 2倍",
+                default_value="2",
+            ),
+            RegisterConfig(
+                key="手续费",
+                value="0.2",
+                help="金币兑换农场币的手续费 默认值为: 0.2 实际意义为20%手续费",
+                default_value="0.2",
+            ),
+            RegisterConfig(
+                key="服务地址",
+                value="http://diuse.work",
+                help="签到、交易行、活动等服务器地址",
+                default_value="http://diuse.work",
+            )
+        ]
     ).to_dict(),
 )
 driver = get_driver()
@@ -50,9 +70,6 @@ async def start():
 
     # 初始化读取Json
     await g_pJsonManager.init()
-
-    # await g_pFarmManager.reclamation("1754798088")
-    # await g_pSqlManager.initUserInfoByUid("1754798088", "Art_Sakura", 0, 100)
 
 # 析构函数
 @driver.on_shutdown

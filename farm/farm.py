@@ -4,6 +4,9 @@ from datetime import date, datetime
 from io import StringIO
 from typing import Dict, List, Tuple
 
+from numpy import number
+
+from zhenxun.configs.config import Config
 from zhenxun.models.user_console import UserConsole
 from zhenxun.services.log import logger
 from zhenxun.utils._build_image import BuildImage
@@ -22,18 +25,23 @@ class CFarmManager:
 
         user = await UserConsole.get_user(uid)
 
-        point = num // 2
-
-        if user.gold < point:
+        if user.gold < num:
             return "你的金币不足"
 
-        await UserConsole.reduce_gold(uid, point, GoldHandle.BUY , 'zhenxun_plugin_farm')
+        await UserConsole.reduce_gold(uid, num, GoldHandle.BUY , 'zhenxun_plugin_farm')
+
+        pro = Config.get_config("zhenxun_plugin_farm", "兑换倍数")
+        tax = Config.get_config("zhenxun_plugin_farm", "手续费")
+
+        exc = num * pro
+        point = exc - (exc * tax)
 
         p = await g_pSqlManager.getUserPointByUid(uid)
+        number = point + p
 
-        await g_pSqlManager.updateUserPointByUid(uid, num + p)
+        await g_pSqlManager.updateUserPointByUid(uid, number)
 
-        return f"充值{num}农场币成功，当前农场币：{num + p}"
+        return f"充值{num}农场币成功，当前农场币：{number}"
 
     @classmethod
     async def drawFarmByUid(cls, uid: str) -> bytes:
