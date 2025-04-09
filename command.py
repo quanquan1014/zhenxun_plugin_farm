@@ -50,7 +50,7 @@ diuse_farm = on_alconna(
         "我的农场",
         Option("--all", action=store_true),
         Subcommand("my-point", help_text="我的农场币"),
-        Subcommand("seed-shop", help_text="种子商店"),
+        Subcommand("seed-shop", Args["num?", int], help_text="种子商店"),
         Subcommand("buy-seed", Args["name?", str]["num?", int], help_text="购买种子"),
         Subcommand("my-seed", help_text="我的种子"),
         Subcommand("sowing", Args["name?", str]["num?", int], help_text="播种"),
@@ -96,20 +96,20 @@ async def _(session: Uninfo):
     await MessageUtils.build_message(f"你的当前农场币为: {point}").send(reply_to=True)
 
 diuse_farm.shortcut(
-    "种子商店",
+    "种子商店(.*?)",
     command="我的农场",
     arguments=["seed-shop"],
     prefix=True,
 )
 
 @diuse_farm.assign("seed-shop")
-async def _(session: Uninfo):
+async def _(session: Uninfo, num: Query[int] = AlconnaQuery("num", 0)):
     uid = str(session.user.id)
 
     if await isRegisteredByUid(uid) == False:
         return
 
-    image = await g_pShopManager.getSeedShopImage()
+    image = await g_pShopManager.getSeedShopImage(num.result)
     await MessageUtils.build_message(image).send()
 
 diuse_farm.shortcut(

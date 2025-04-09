@@ -436,13 +436,18 @@ class CSqlManager:
             s = ""
         else:
             #获取种子信息 这里能崩我吃
-            plantInfo = g_pJsonManager.m_pPlant['plant'][plant] #type: ignore
+            plantInfo = g_pJsonManager.m_pPlant['plant'][plant]
 
             currentTime = datetime.now()
             newTime = currentTime + timedelta(hours=int(plantInfo['time']))
 
-            #种子名称，种下时间，预计成熟时间，地状态：0：无 1：长草 2：生虫 3：缺水 4：枯萎，是否被偷 示例：QQ号-偷取数量|QQ号-偷取数量
-            s = f"{plant},{int(currentTime.timestamp())},{int(newTime.timestamp())},{status},"
+            #0: 种子名称
+            #1: 种下时间
+            #2: 预计成熟时间
+            #3: 地状态：0：无 1：长草 2：生虫 3：缺水 4：枯萎
+            #4: 是否被偷 示例：QQ号-偷取数量|QQ号-偷取数量
+            #5: 土地等级 0：普通 1：红土地 2：黑土地 3：金土地 4：紫晶土地 5：蓝晶土地 6：黑晶土地
+            s = f"{plant},{int(currentTime.timestamp())},{int(newTime.timestamp())},{status},,"
 
         sql = f"UPDATE soil SET {soil} = '{s}' WHERE uid = {uid}"
 

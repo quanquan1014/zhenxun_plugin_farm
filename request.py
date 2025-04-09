@@ -28,8 +28,14 @@ class CRequestManager:
         a = await cls.post("http://diuse.work:9099/testPost", json_data={"level":3})
 
         result = ""
-        if int(a["type"]) == 1:
-            result = f"签到成功"
+
+        type = int(a["type"])
+        if type == 1:
+            result = f"签到成功 type = 1"
+        elif type == 2:
+            result = f"签到成功 type = 2"
+        else:
+            result = f"签到成功 type = {type}"
 
         return result
 

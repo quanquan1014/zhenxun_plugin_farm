@@ -10,6 +10,7 @@ from .config import g_pJsonManager
 from .database import g_pSqlManager
 from .farm.farm import g_pFarmManager
 from .farm.shop import g_pShopManager
+from .request import g_pRequestManager
 
 __plugin_meta__ = PluginMetadata(
     name="真寻农场",
@@ -20,7 +21,7 @@ __plugin_meta__ = PluginMetadata(
         at 开通农场
         我的农场
         我的农场币
-        种子商店
+        种子商店 [页数]
         购买种子 [作物/种子名称] [数量]
         我的种子
         播种 [作物/种子名称] [数量]
@@ -70,6 +71,12 @@ async def start():
 
     # 初始化读取Json
     await g_pJsonManager.init()
+
+    # a = await g_pRequestManager.sign("1754798088")
+
+    # logger.info(a)
+
+    await g_pShopManager.getSeedShopImage(1)
 
 # 析构函数
 @driver.on_shutdown

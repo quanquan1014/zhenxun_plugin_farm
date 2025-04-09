@@ -1,3 +1,5 @@
+import math
+
 from zhenxun.services.log import logger
 from zhenxun.utils._build_image import BuildImage
 from zhenxun.utils.image_utils import ImageTemplate
@@ -9,10 +11,8 @@ from ..database import g_pSqlManager
 class CShopManager:
 
     @classmethod
-    async def getSeedShopImage(cls) -> bytes:
+    async def getSeedShopImage(cls, num: int = 1) -> bytes:
         """获取商店页面
-
-        TODO: 缺少翻页功能
 
         Returns:
             bytes: 返回商店图片bytes
@@ -33,8 +33,12 @@ class CShopManager:
         ]
 
         sell = ""
-        plants = g_pJsonManager.m_pPlant['plant'] # type: ignore
-        for key, plant in plants.items():
+        plants = list(g_pJsonManager.m_pPlant['plant'].items())
+        start = (num - 1) * 15
+        maxItems = min(len(plants) - start, 15)
+        items = plants[start:start + maxItems]
+
+        for key, plant in items:
             icon = ""
             icon_path = g_sResourcePath / f"plant/{key}/icon.png"
             if icon_path.exists():
@@ -60,8 +64,11 @@ class CShopManager:
                 ]
             )
 
+        count = math.ceil(len(g_pJsonManager.m_pPlant['plant']) / 15)
+        title = f"种子商店 页数: {num}/{count}"
+
         result = await ImageTemplate.table_page(
-            "种子商店",
+            title,
             "购买示例：@小真寻 购买种子 大白菜 5",
             column_name,
             data_list,
@@ -88,10 +95,9 @@ class CShopManager:
         plantInfo = None
 
         try:
-            plantInfo = g_pJsonManager.m_pPlant['plant'][name] # type: ignore
+            plantInfo = g_pJsonManager.m_pPlant['plant'][name]
         except Exception as e:
             return "购买出错！请检查需购买的种子名称！"
-
 
         level = await g_pSqlManager.getUserLevelByUid(uid)
 
@@ -141,7 +147,7 @@ class CShopManager:
                     plant_name, count_str = item.split('|', 1)
                     try:
                         count = int(count_str)
-                        plant_info = g_pJsonManager.m_pPlant['plant'][plant_name] # type: ignore
+                        plant_info = g_pJsonManager.m_pPlant['plant'][plant_name]
                         point += plant_info['price'] * count
                     except Exception:
                         continue
@@ -172,7 +178,7 @@ class CShopManager:
 
         #计算收益
         try:
-            plantInfo = g_pJsonManager.m_pPlant['plant'][name] # type: ignore
+            plantInfo = g_pJsonManager.m_pPlant['plant'][name]
             totalPoint = plantInfo['price'] * totalSold
         except KeyError:
             return f"出售作物{name}出错：作物不存在"
