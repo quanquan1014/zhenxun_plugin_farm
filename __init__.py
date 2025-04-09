@@ -72,12 +72,6 @@ async def start():
     # 初始化读取Json
     await g_pJsonManager.init()
 
-    # a = await g_pRequestManager.sign("1754798088")
-
-    # logger.info(a)
-
-    await g_pShopManager.getSeedShopImage(1)
-
 # 析构函数
 @driver.on_shutdown
 async def shutdown():
