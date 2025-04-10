@@ -1,4 +1,5 @@
 import asyncio
+import math
 import random
 from datetime import date, datetime
 from io import StringIO
@@ -25,23 +26,28 @@ class CFarmManager:
 
         user = await UserConsole.get_user(uid)
 
-        if user.gold < num:
-            return "你的金币不足"
+        pro = float(Config.get_config("zhenxun_plugin_farm", "兑换倍数"))
+        tax = float(Config.get_config("zhenxun_plugin_farm", "手续费"))
 
-        await UserConsole.reduce_gold(uid, num, GoldHandle.BUY , 'zhenxun_plugin_farm')
+        #计算手续费
+        fee = math.floor(num * tax)
+        #实际扣费金额
+        deduction = num + fee
 
-        pro = Config.get_config("zhenxun_plugin_farm", "兑换倍数")
-        tax = Config.get_config("zhenxun_plugin_farm", "手续费")
+        if user.gold < deduction:
+            return f"你的金币不足或不足承担手续费。当前手续费为{fee}"
 
-        exc = num * pro
-        point = exc - (exc * tax)
+        await UserConsole.reduce_gold(uid, num, GoldHandle.PLUGIN , 'zhenxun_plugin_farm')
+        await UserConsole.reduce_gold(uid, fee, GoldHandle.PLUGIN , 'zhenxun_plugin_farm')
+
+        point = num * pro
 
         p = await g_pSqlManager.getUserPointByUid(uid)
         number = point + p
 
-        await g_pSqlManager.updateUserPointByUid(uid, number)
+        await g_pSqlManager.updateUserPointByUid(uid, int(number))
 
-        return f"充值{num}农场币成功，当前农场币：{number}"
+        return f"充值{point}农场币成功，手续费{tax}金币，当前农场币：{number}"
 
     @classmethod
     async def drawFarmByUid(cls, uid: str) -> bytes:
@@ -53,7 +59,7 @@ class CFarmManager:
         Returns:
             bytes: 返回绘制结果
         """
-        img = BuildImage(background = g_sResourcePath / "background/background.jpg")
+        img = BuildImage(background = g_sResourcePath / "background/background.png")
 
         soilSize = g_pJsonManager.m_pSoil['size']
 
@@ -86,6 +92,7 @@ class CFarmManager:
                     await img.paste(plant, (x + soilSize[0] // 2 - plant.width // 2,
                                             y + soilSize[1] // 2 - plant.height // 2))
 
+                #1700 275
                 #首次添加可收获图片
                 if isRipe and isFirstRipe:
                     ripe = BuildImage(background = g_sResourcePath / "background/ripe.png")
@@ -106,8 +113,34 @@ class CFarmManager:
                     await img.paste(expansion, (x + soilSize[0] // 2 - expansion.width // 2,
                                                 y + soilSize[1] // 2 - expansion.height))
 
+        #绘制背景信息
+        #小屋
+        hut = BuildImage(background = g_sResourcePath / "background/hut.png")
+        await hut.resize(0, 600, 661)
+        await img.paste(hut, (1700, 100))
+
+        #犬舍
+        kennel = BuildImage(background = g_sResourcePath / "background/kennel.png")
+        await img.paste(kennel, (300, 750))
+
+        #交易
+        trade = BuildImage(background = g_sResourcePath / "background/trade.png")
+        await img.paste(trade, (555, 510))
+
+        #魔法
+        magic = BuildImage(background = g_sResourcePath / "background/magic.png")
+        await img.paste(magic, (850, 450))
+
+        #信箱
+        mailbox = BuildImage(background = g_sResourcePath / "background/mailbox.png")
+        await img.paste(mailbox, (800, 550))
+
+        #渔场
+        fisheries = BuildImage(background = g_sResourcePath / "background/fisheries.png")
+        await img.paste(fisheries, (1120, 1000))
+
         #左上角绘制用户信息
-        await img.resize(0.6)
+        await img.resize(0.5)
         return img.pic2bytes()
 
     @classmethod
@@ -253,17 +286,19 @@ class CFarmManager:
         Returns:
             str:
         """
-        plant = await g_pSqlManager.getUserSeedByUid(uid)
 
-        if plant == None or len(plant) == 0:
-            return "你的种子仓库是空的，快去买点吧！"
+        number = 0
+        count = await g_pSqlManager.getUserSeedByName(uid, name)
 
-        plantDict = {}
-        for item in plant.split(','):
-            if '|' in item:
-                seed_name, count = item.split('|', 1)
-                plantDict[seed_name] = int(count)
+        if count <= 0:
+            return f"没有在你的仓库发现{name}种子，快去买点吧！"
 
+        #如果播种超过仓库种子
+        isMax = False
+        if count < num:
+            isMax = True
+
+        #如果播种全部
         isAll = False
         if num == -1:
             isAll = True
@@ -271,29 +306,31 @@ class CFarmManager:
         soilNumber = await g_pSqlManager.getUserSoilByUid(uid)
 
         for i in range(1, soilNumber + 1):
-            if plantDict[name] > 0:
+            if count > 0:
                 if isAll or num > 0:
                     soilName = f"soil{i}"
                     success, message = await g_pSqlManager.getUserSoilStatusBySoilID(uid, soilName)
                     if success:
                         #更新种子数量
                         num -= 1
-                        plantDict[name] -= 1
+                        count -= 1
+
+                        #记录种子消耗数量
+                        number -= 1
 
                         #更新数据库
                         await g_pSqlManager.updateUserSoilStatusByPlantName(uid, soilName, name)
 
         str = ""
 
-        if num > 0:
-            str = f"播种数量超出开垦土地数量，已将可播种土地成功播种{name}！仓库还剩下{plantDict[name]}个种子"
+        if isMax:
+            str = f"仓库数量不够那么多，已将剩余数量全部播种！"
+        elif num > 0:
+            str = f"播种数量超出开垦土地数量，已将可播种土地成功播种{name}！仓库还剩下{count}个种子"
         else:
-            str = f"播种{name}成功！仓库还剩下{plantDict[name]}个种子"
+            str = f"播种{name}成功！仓库还剩下{count}个种子"
 
-        await g_pSqlManager.updateUserSeedByUid(
-            uid,
-            ','.join([f"{k}|{v}" for k, v in plantDict.items() if v != 0])
-        )
+        await g_pSqlManager.addUserSeedByPlant(uid, name, number)
 
         return str
 
@@ -596,8 +633,6 @@ class CFarmManager:
             await g_pSqlManager.executeDB(sql)
 
             return "\n".join(harvestRecords)
-    # @classmethod
-    # async def reclamation(cls, uid: str) -> str:
 
     @classmethod
     async def reclamationCondition(cls, uid: str) -> str:
@@ -640,6 +675,8 @@ class CFarmManager:
             levelFileter = rec['level']
             point = rec['point']
             item = rec['item']
+
+            logger.info(f"{level[0]}")
 
             if level[0] < levelFileter:
                 return f"当前用户等级不足，升级所需等级为{levelFileter}"

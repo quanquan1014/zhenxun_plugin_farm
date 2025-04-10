@@ -4,7 +4,7 @@ import re
 from datetime import date, datetime, timedelta
 from io import StringIO
 from math import e
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import aiosqlite
 
@@ -283,12 +283,7 @@ class CSqlManager:
             return -1
 
         try:
-            async with cls.m_pDB.execute(f"UPDATE user SET point = {point} WHERE uid = {uid}") as cursor:
-                async for row in cursor:
-                    return int(row[0])
-
-            logger.info(f"未找到用户或未修改数据: uid={uid}")
-            return -1
+            return await cls.executeDB(f"UPDATE user SET point = {point} WHERE uid = {uid}")
         except Exception as e:
             logger.error(f"金币更新失败: {e}")
             return -1
@@ -351,13 +346,10 @@ class CSqlManager:
                 async for row in cursor:
                     exp = int(row[0])
 
-                    #计算当前等级（向下取整）
-                    level = math.floor((math.sqrt(1 + 4 * exp / 100) - 1) / 2)
-
-                    #计算下级所需经验 下级所需经验为：200 + 当前等级 * 200
+                    level = exp // 200
                     nextLevelExp = 200 * (level + 1)
-                    currentLevelExp = 100 * level * (level + 1)
 
+                    currentLevelExp = level * 200
                     remainingExp = exp - currentLevelExp
 
                     return level, nextLevelExp, remainingExp
@@ -478,6 +470,43 @@ class CSqlManager:
             return ""
 
     @classmethod
+    async def getUserSeedByName(cls, uid: str, name: str) -> int:
+        """获取用户仓库种子信息
+
+        Args:
+            uid (str): 用户信息
+            name (str): 种子名称
+
+        Returns:
+            int: 仓库种子信息
+        """
+
+        if len(uid) <= 0:
+            return -1
+
+        try:
+            async with cls.m_pDB.execute(f"SELECT seed FROM storehouse WHERE uid = {uid}") as cursor:
+                async for row in cursor:
+                    if row[0] == None or len(row[0]) == 0:
+                        return -1
+
+                    plantDict: Dict[str, int] = {}
+                    for item in row[0].split(','):
+                        if '|' in item:
+                            seedName, count = item.split('|', 1)
+                            plantDict[seedName] = int(count)
+
+                    if name in plantDict:
+                        return plantDict[name]
+                    else:
+                        return -1
+
+            return -1
+        except Exception as e:
+            logger.warning(f"getUserSeedByUid查询失败: {e}")
+            return -1
+
+    @classmethod
     async def updateUserSeedByUid(cls, uid: str, seed: str) -> bool:
         """更新用户种子仓库
 
@@ -523,8 +552,11 @@ class CSqlManager:
 
         if seed in seedsDict:
             seedsDict[seed] += num
+            if seedsDict[seed] <= 0:
+                del seedsDict[seed]
         else:
-            seedsDict[seed] = num
+            if num > 0:
+                seedsDict[seed] = num
 
         updatedSeeds = ','.join([f"{name}|{count}" for name, count in seedsDict.items()])
 

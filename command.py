@@ -103,7 +103,7 @@ diuse_farm.shortcut(
 )
 
 @diuse_farm.assign("seed-shop")
-async def _(session: Uninfo, num: Query[int] = AlconnaQuery("num", 0)):
+async def _(session: Uninfo, num: Query[int] = AlconnaQuery("num", 1)):
     uid = str(session.user.id)
 
     if await isRegisteredByUid(uid) == False:
@@ -159,7 +159,7 @@ diuse_farm.shortcut(
 )
 
 @diuse_farm.assign("sowing")
-async def _(session: Uninfo, name: Match[str], num: Query[int] = AlconnaQuery("num", 1),):
+async def _(session: Uninfo, name: Match[str], num: Query[int] = AlconnaQuery("num", -1),):
     if not name.available:
         await MessageUtils.build_message(
             "请在指令后跟需要播种的种子名称"
