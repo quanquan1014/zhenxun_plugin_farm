@@ -1,5 +1,6 @@
 import math
 
+from Python311.Lib._pytest.mark.structures import istestfunc
 from zhenxun.services.log import logger
 from zhenxun.utils._build_image import BuildImage
 from zhenxun.utils.image_utils import ImageTemplate
@@ -139,6 +140,10 @@ class CShopManager:
         totalSold = 0
         remainingItems = []
 
+        isAll = False
+        if num == -1:
+            isAll = True
+
         items = plant.split(',')
         if len(name) <= 0:
             #出售全部
@@ -160,20 +165,26 @@ class CShopManager:
                     try:
                         count = int(countStr)
                         if plantName == name:
-                            sellAmount = min(num, count)
+
+                            if isAll:
+                                sellAmount = count
+                            else:
+                                sellAmount = min(num, count)
+
                             totalSold += sellAmount
                             remaining = count - sellAmount
 
                             if remaining > 0:
                                 remainingItems.append(f"{plantName}|{remaining}")
 
-                            num -= sellAmount
-                            if num == 0:
-                                break
+                            if isAll == False:
+                                num -= sellAmount
+
+                            break
                     except (ValueError, TypeError):
                         continue
 
-        if num > 0:
+        if num > 0 and isAll == False:
             return f"出售作物{name}出错：数量不足"
 
         #计算收益

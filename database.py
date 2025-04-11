@@ -634,8 +634,11 @@ class CSqlManager:
 
         if plant in plantsDict:
             plantsDict[plant] += num
+            if plantsDict[plant] <= 0:
+                del plantsDict[plant]
         else:
-            plantsDict[plant] = num
+            if num > 0:
+                plantsDict[plant] = num
 
         updatedPlants = ','.join([f"{name}|{count}" for name, count in plantsDict.items()])
 

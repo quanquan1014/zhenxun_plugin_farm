@@ -679,7 +679,7 @@ class CFarmManager:
             logger.info(f"{level[0]}")
 
             if level[0] < levelFileter:
-                return f"当前用户等级不足，升级所需等级为{levelFileter}"
+                return f"当前用户等级{level[0]}，升级所需等级为{levelFileter}"
 
             if userInfo['point'] < point:
                 return f"当前用户农场币不足，升级所需农场币为{point}"
