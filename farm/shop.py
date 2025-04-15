@@ -1,6 +1,5 @@
 import math
 
-from Python311.Lib._pytest.mark.structures import istestfunc
 from zhenxun.services.log import logger
 from zhenxun.utils._build_image import BuildImage
 from zhenxun.utils.image_utils import ImageTemplate

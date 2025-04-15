@@ -13,6 +13,7 @@ from zhenxun.services.log import logger
 from zhenxun.utils._build_image import BuildImage
 from zhenxun.utils.enum import GoldHandle
 from zhenxun.utils.image_utils import ImageTemplate
+from zhenxun.utils.platform import PlatformUtils
 
 from ..config import g_pJsonManager, g_sResourcePath
 from ..database import g_pSqlManager
@@ -50,7 +51,7 @@ class CFarmManager:
         return f"充值{point}农场币成功，手续费{tax}金币，当前农场币：{number}"
 
     @classmethod
-    async def drawFarmByUid(cls, uid: str) -> bytes:
+    async def drawFarmByUid(cls, uid: str, name: str) -> bytes:
         """绘制用户农场
 
         Args:
@@ -59,7 +60,7 @@ class CFarmManager:
         Returns:
             bytes: 返回绘制结果
         """
-        img = BuildImage(background = g_sResourcePath / "background/background.png")
+        img = BuildImage(background = g_sResourcePath / "background/background.jpg")
 
         soilSize = g_pJsonManager.m_pSoil['size']
 
@@ -113,34 +114,31 @@ class CFarmManager:
                     await img.paste(expansion, (x + soilSize[0] // 2 - expansion.width // 2,
                                                 y + soilSize[1] // 2 - expansion.height))
 
-        #绘制背景信息
-        #小屋
-        hut = BuildImage(background = g_sResourcePath / "background/hut.png")
-        await hut.resize(0, 600, 661)
-        await img.paste(hut, (1700, 100))
-
-        #犬舍
-        kennel = BuildImage(background = g_sResourcePath / "background/kennel.png")
-        await img.paste(kennel, (300, 750))
-
-        #交易
-        trade = BuildImage(background = g_sResourcePath / "background/trade.png")
-        await img.paste(trade, (555, 510))
-
-        #魔法
-        magic = BuildImage(background = g_sResourcePath / "background/magic.png")
-        await img.paste(magic, (850, 450))
-
-        #信箱
-        mailbox = BuildImage(background = g_sResourcePath / "background/mailbox.png")
-        await img.paste(mailbox, (800, 550))
-
-        #渔场
-        fisheries = BuildImage(background = g_sResourcePath / "background/fisheries.png")
-        await img.paste(fisheries, (1120, 1000))
-
         #左上角绘制用户信息
-        await img.resize(0.5)
+        #头像
+        image = await PlatformUtils.get_user_avatar(uid, "qq")
+
+        if image:
+            avatar = BuildImage(background = image)
+
+            await img.paste(avatar, (125, 85))
+
+        #头像框
+        frame = BuildImage(background = g_sResourcePath / "background/frame.png")
+        await img.paste(frame, (75, 44))
+
+        #用户名
+        nameImg = await BuildImage.build_text_image(name)
+        await img.paste(nameImg, (300, 100))
+
+        #经验值
+
+        #金币
+
+        #点券
+
+
+        # await img.resize(0.4)
         return img.pic2bytes()
 
     @classmethod

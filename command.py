@@ -8,6 +8,7 @@ from nonebot_plugin_uninfo import Uninfo
 from nonebot_plugin_waiter import waiter
 
 from zhenxun.services.log import logger
+from zhenxun.utils.depends import UserName
 from zhenxun.utils.message import MessageUtils
 
 from .database import g_pSqlManager
@@ -68,13 +69,13 @@ diuse_farm = on_alconna(
 )
 
 @diuse_farm.assign("$main")
-async def _(session: Uninfo):
+async def _(session: Uninfo, nickname: str = UserName()):
     uid = str(session.user.id)
 
     if await isRegisteredByUid(uid) == False:
         return
 
-    image = await g_pFarmManager.drawFarmByUid(uid)
+    image = await g_pFarmManager.drawFarmByUid(uid, nickname)
     await MessageUtils.build_message(image).send(reply_to=True)
 
 diuse_farm.shortcut(
