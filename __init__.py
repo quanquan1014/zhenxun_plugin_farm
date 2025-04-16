@@ -40,6 +40,12 @@ __plugin_meta__ = PluginMetadata(
         menu_type="群内小游戏",
         configs=[
             RegisterConfig(
+                key="绘制农场清晰度",
+                value="low",
+                help="我的农场返回图片的清晰度, [low, medium, hight, original]",
+                default_value="low",
+            ),
+            RegisterConfig(
                 key="兑换倍数",
                 value="2",
                 help="金币兑换农场币的倍数 默认值为: 2倍",

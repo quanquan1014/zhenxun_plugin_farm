@@ -128,17 +128,46 @@ class CFarmManager:
         await img.paste(frame, (75, 44))
 
         #用户名
-        nameImg = await BuildImage.build_text_image(name)
-        await img.paste(nameImg, (300, 100))
+        nameImg = await BuildImage.build_text_image(name, size = 24, font_color = (77, 35, 4))
+        await img.paste(nameImg, (300, 92))
 
         #经验值
+        level = await g_pSqlManager.getUserLevelByUid(uid)
+
+        beginX = 309
+        endX = 627
+        #绘制宽度计算公式为 (当前经验值 / 经验值上限) * 宽度
+        width = int((level[2] / level[1]) * (endX - beginX))
+        await img.rectangle((beginX, 188, beginX + width, 222), (171, 194, 41))
+
+        expImg = await BuildImage.build_text_image(f"{level[2]} / {level[1]}", size = 24, font_color = (102, 120, 19))
+        await img.paste(expImg, (390, 193))
+
+        #等级
+        levelImg = await BuildImage.build_text_image(str(level[0]), size = 32, font_color = (214, 111, 1))
+        await img.paste(levelImg, (660, 187))
 
         #金币
+        point = await g_pSqlManager.getUserPointByUid(uid)
+        pointImg = await BuildImage.build_text_image(str(point), size = 24, font_color = (253, 253, 253))
+        await img.paste(pointImg, (330, 255))
 
         #点券
+        bonds = await g_pSqlManager.getUserPointByUid(uid)
+        bondsImg = await BuildImage.build_text_image("0", size = 24, font_color = (253, 253, 253))
+        await img.paste(bondsImg, (570, 255))
 
+        #清晰度
+        definition = Config.get_config("zhenxun_plugin_farm", "绘制农场清晰度")
+        if definition == "medium":
+            await img.resize(0.6)
+        elif definition == "hight":
+            await img.resize(0.8)
+        elif definition == "original":
+            pass
+        else:
+            await img.resize(0.4)
 
-        # await img.resize(0.4)
         return img.pic2bytes()
 
     @classmethod
