@@ -34,17 +34,39 @@ diuse_register = on_alconna(
 )
 
 @diuse_register.handle()
-async def _(session: Uninfo):
+async def handle_register(session: Uninfo):
     uid = str(session.user.id)
-
     user = await g_pSqlManager.getUserInfoByUid(uid)
 
     if user:
-        await MessageUtils.build_message("你已经有啦").send(reply_to=True)
-    else:
-        aaa = await g_pSqlManager.initUserInfoByUid(uid, str(session.user.name), 0, 100)
+        await MessageUtils.build_message("🎉 您已经开通农场啦~").send(reply_to=True)
+        return
 
-        await MessageUtils.build_message(str(aaa)).send(reply_to=True)
+    try:
+        # 获取原始用户名并安全处理
+        raw_name = str(session.user.name)
+        safe_name = sanitize_username(raw_name)
+        
+        # 初始化用户信息
+        success = await g_pSqlManager.initUserInfoByUid(
+            uid=uid,
+            name=safe_name,
+            exp=0,
+            point=100
+        )
+
+        msg = (
+            "✅ 农场开通成功！\n💼 初始资金：100农场币" 
+            if success 
+            else "⚠️ 开通失败，请稍后再试"
+        )
+        logger.info(f"用户注册 {'成功' if success else '失败'}：{uid}")
+
+    except Exception as e:
+        msg = "⚠️ 系统繁忙，请稍后再试"
+        logger.error(f"注册异常 | UID:{uid} | 错误：{str(e)}")
+    
+    await MessageUtils.build_message(msg).send(reply_to=True)
 
 diuse_farm = on_alconna(
     Alconna(
